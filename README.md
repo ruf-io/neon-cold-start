@@ -1,36 +1,49 @@
-This is a [Next.js](https://nextjs.org/) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
+This is a [Neon](http://neon.tech) tool to benchmark cold starts.
 
 ## Getting Started
 
-First, run the development server:
+1. Clone the repo and install the dependencies:
+    ```bash
+    npm install
+    ```
+2. Create an `.env` file using `.env.example` as template.
+3. Run the development server:
+    ```bash
+    npm run serve
+    ```
+4. Open [http://localhost:3000](http://localhost:3000) with your browser to run the benchmark. Remember to keep the browser open while the benchmark is running.
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+## The problem
+Neon suspends the database compute to save resources after five minutes of inactivity. The next time the database needs to process a query, the compute will need to resume. This is known as the cold-start problem. Understanding how much time takes the cold-start is the idea for this project.
+
+## Benchmark
+
+The application will read your [project operations](https://neon.tech/docs/manage/operations) and calculate basic metrics (avg, max, min). The `start_compute` operation duration reflects much of the time taken to warm a cold compute endpoint. This will give you an overview on how much cold starts are taking. The next step is to run the benchmark.
+
+The benchmark will suspend your branch compute and request a simple read query over an indexed table:
+
+```sql
+-- Both, the setup and query are configurable at `/api/benchmark/route.ts`
+-- Setup:
+CREATE TABLE IF NOT EXISTS benchmark_table (A INT);
+INSERT INTO benchmark_table VALUES (generate_series(0, 100000));
+CREATE INDEX IF NOT EXISTS benchmark_table_idx ON benchmark_table (A);
+
+-- Query:
+SELECT * FROM benchmark_big_table WHERE a = 1000000;
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Next, each run benchmark is stored in a table:
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```sql
+CREATE TABLE IF NOT EXISTS benchmarks (id TEXT, duration INT, ts TIMESTAMP);
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/basic-features/font-optimization) to automatically optimize and load Inter, a custom Google Font.
+The application will use this information to display your cold-start benchmarks.
 
 ## Learn More
 
-To learn more about Next.js, take a look at the following resources:
+- [Neon Documentation](https://neon.tech/docs/introduction).
+- [Cold starts](https://neon.tech/blog/cold-starts-just-got-hot).
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js/) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/deployment) for more details.
+Your feedback and contributions are welcome!
