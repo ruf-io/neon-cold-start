@@ -4,7 +4,6 @@ import Analytics from "./analytics";
 import Zero from "@/content/zero.mdx";
 import Apps from "@/content/apps.mdx";
 import Env from "@/content/env.mdx";
-import Storage from "@/content/storage.mdx";
 import Picutre from "@/content/picture.mdx";
 
 export default function Home() {
@@ -17,7 +16,7 @@ export default function Home() {
                         Neon Cold Start Benchmarks
                     </h1>
                     <div className="text-gray-600 mt-4 w-2/3">
-                        An open-source tool designed to analyze and benchmark the compute endpoint startup performance (cold start) of Neon.
+                        An open-source tool to benchmark cold starts.
                     </div>
                 </div>
                 <div className="ml-auto my-auto ">
@@ -34,8 +33,12 @@ export default function Home() {
 
             {/* Content */}
             <div className="w-2/3 mt-16">
-                <Storage />
-                <h1 className="text-4xl text-center font-light my-10">Scale to zero</h1>
+                <div className=" bg-gray-50 rounded-sm bg-opacity-5 p-10 h-52 font-semibold">
+                    <div className="text-4xl text-white">
+                        Storage size makes no difference.
+                    </div>
+                </div>
+                <h1 className="text-4xl text-center font-semibold my-20">Scale to zero</h1>
                 <div className="flex flex-col space-y-20">
                     <div>
                         <Env />
