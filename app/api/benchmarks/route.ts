@@ -34,8 +34,8 @@ export async function POST(req: NextRequest) {
     if (init) {
         console.log("Initializing branch database.");
 
-        for (const query in startUpQueries) {
-            await sql`${query}`
+        for (const query of startUpQueries) {
+            await sql(query)
         }
     }
 
@@ -58,7 +58,7 @@ export async function POST(req: NextRequest) {
 
     // Run select operation to trigger compute.
     const before = new Date();
-    await sql`${benchmarkQuery}`;
+    await sql(benchmarkQuery);
     const after = new Date();
     const benchmarkValue = after.getTime() - before.getTime();
 
@@ -77,11 +77,14 @@ export async function GET(req: NextRequest) {
     }
 
     const sql = neon(NEON_CONNECTION_STRING);
-    const benchmarks = await sql`SELECT id, MIN(ts) as run_date, AVG(duration), MAX(duration), MIN(duration) FROM benchmarks GROUP BY id;`;
-
+    const benchmarks = await sql`SELECT id, MIN(ts) as ts, AVG(duration), MAX(duration), MIN(duration) FROM benchmarks GROUP BY id ORDER BY ts DESC;`;
     return NextResponse.json({
         data: {
-            benchmarks
+            // Avg can turn into a string.
+            benchmarks: benchmarks.map(x => ({
+                ...x,
+                avg: Number(Number(x.avg).toFixed(0))
+            }))
         }
     }, { status: 200 });
 }

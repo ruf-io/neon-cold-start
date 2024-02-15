@@ -3,7 +3,7 @@ import { NEON_CONNECTION_STRING } from '../../utils';
 import { neon } from '@neondatabase/serverless';
 
 // TODO: Solve type in context
-export async function GET(req: NextRequest, context: any) {
+export async function GET(_: NextRequest, context: any) {
     const { id } = context.params;
 
     if (!NEON_CONNECTION_STRING) {
@@ -14,7 +14,7 @@ export async function GET(req: NextRequest, context: any) {
 
     const sql = neon(NEON_CONNECTION_STRING);
 
-    const benchmarks = await sql`SELECT * FROM benchmarks WHERE id = ${id} ORDER BY TS DESC`;
+    const benchmarks = await sql`SELECT * FROM benchmarks WHERE id = ${id} ORDER BY TS ASC`;
 
     return NextResponse.json({
         data: {

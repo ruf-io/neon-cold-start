@@ -39,7 +39,7 @@ Next, each run benchmark is stored in a table:
 CREATE TABLE IF NOT EXISTS benchmarks (id TEXT, duration INT, ts TIMESTAMP);
 ```
 
-The application will use this information to display your cold-start benchmarks.
+The application will display the last benchmark available.
 
 ## Learn More
 

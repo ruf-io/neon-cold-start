@@ -8,10 +8,11 @@ import { ChartData, ChartDataset, Point, ScriptableContext } from 'chart.js';
 import Question from '@/components/question';
 import Benchmark from './benchmark';
 
-// interface BenchmarkRun {
-//     ts: Date;
-//     duration: number;
-// }
+interface BenchmarkRun {
+    id: string,
+    ts: string,
+    duration: number,
+}
 
 // interface Benchmark {
 //     max: number;
@@ -19,6 +20,16 @@ import Benchmark from './benchmark';
 //     avg: number;
 //     runDate: Date;
 // }
+
+// Is this interface correct?
+interface BenchmarkStats {
+    id: string,
+    min: number,
+    max: number,
+    avg: number,
+    ts: Date,
+}
+
 
 interface Analytics {
     max: number;
@@ -35,45 +46,47 @@ interface State<T> {
 
 export default function Analytics() {
     // TODO: Implement loading + error.
-    const [{
-        loading,
-        error,
-        data
-    }, setState] = useState<State<Analytics>>({
-        loading: true,
-        error: undefined,
-        data: undefined
-    });
+    // const [{
+    //     loading,
+    //     error,
+    //     data
+    // }, setState] = useState<State<Analytics>>({
+    //     loading: true,
+    //     error: undefined,
+    //     data: undefined
+    // });
     // const [benchmarks, setBenchmarks] = useState<Array<Benchmark>>(undefined);
     const [benchmarkId, setBenchmarkId] = useState<string | undefined>(undefined);
     const [endpoint, setEndpoint] = useState<Endpoint | undefined>(undefined);
-    const [benchmarks, setBenchmarks] = useState<Array<Point> | undefined>(undefined);
+    const [benchmark, setBenchmark] = useState<Array<Point> | undefined>(undefined);
+    const [lastBenchmark, setLastBenchmark] = useState<BenchmarkStats | undefined>(undefined);
     const [display, setDisplay] = useState<undefined | Display>(undefined);
-    const lineDataset = useMemo<ChartDataset<"line">>(() => {
-        return {
-            data: [],
-            pointRadius: 2,
-            borderWidth: 1,
-            tension: 0.25,
-            borderColor: "rgb(56, 189, 248)",
-            label: "Compute start",
-            type: "line",
-            fill: "start",
-        };
-    }, []);
+    // const lineDataset = useMemo<ChartDataset<"line">>(() => {
+    //     return {
+    //         data: [],
+    //         pointRadius: 2,
+    //         borderWidth: 1,
+    //         tension: 0.25,
+    //         borderColor: "rgb(56, 189, 248)",
+    //         label: "Compute start",
+    //         type: "line",
+    //         fill: "start",
+    //     };
+    // }, []);
     const benchmarkDataset = useMemo<ChartDataset<"line">>(() => {
         return {
-            data: benchmarks || [],
+            data: benchmark || [],
             pointRadius: 2,
             borderWidth: 1,
             tension: 0.25,
-            borderColor: "rgb(255, 134, 69)",
+            // borderColor: "rgb(255, 134, 69)",
+            borderColor: "rgb(56, 189, 248)",
             label: "Compute start + query latency",
             type: "line",
             fill: "start",
         };
-    }, [benchmarks]);
-    const datasets: Array<ChartDataset<"line">> = benchmarks ? [lineDataset, benchmarkDataset] : [lineDataset];
+    }, [benchmark]);
+    const datasets: Array<ChartDataset<"line">> = benchmark ? [benchmarkDataset] : [benchmarkDataset];
 
     const statIdToDisplay = (str?: string) => {
         switch (str) {
@@ -103,12 +116,25 @@ export default function Analytics() {
         const asyncOp = async () => {
             try {
                 // TODO: Replace with latest benchmark
-                const res = await fetch(`/api/benchmarks/b265954e-babd-4458-a47e-c717cb3a9bf8`);
-                const { data } = await res.json();
-                // setBenchmarks(data.benchmarks.map((x: Benchmark) => ({
-                //     x: x.ts,
-                //     y: x.duration,
-                // })));
+                const response = await fetch('/api/benchmarks');
+                const benchmarksStatsData: Response<{ benchmarks: Array<BenchmarkStats> }> = await response.json();
+                const { benchmarks: benchmarksStats } = benchmarksStatsData.data;
+
+                // Benchmarks are sorted by timestamp. The head is the latest.
+                let lastBenchmarkStats: BenchmarkStats | undefined = benchmarksStats[0];
+                console.log("Benchs: ", lastBenchmarkStats, benchmarksStats);
+
+                const benchmarkRunsResponse = await fetch(`/api/benchmarks/${lastBenchmarkStats.id}`);
+                const benchmarkRunData: Response<{ benchmarks: Array<BenchmarkRun> }> = await benchmarkRunsResponse.json();
+                const { benchmarks: benchmarkRuns } = benchmarkRunData.data;
+
+                console.log(lastBenchmarkStats);
+                setLastBenchmark(lastBenchmarkStats);
+                // TODO: Fix any here.
+                setBenchmark(benchmarkRuns.map(({ ts, duration }: BenchmarkRun) => ({
+                    x: ts,
+                    y: duration,
+                } as any)));
             } catch (err) {
                 console.error(err);
             }
@@ -120,67 +146,26 @@ export default function Analytics() {
         const asyncOp = async () => {
             try {
                 const res = await fetch("/api",);
-
-                // TODO: Projects is not used.
+                // TODO: Projects are not used.
                 const { data }: Response<{
                     operations: Array<Array<Operation>>,
                     projects: Array<Project>,
                     endpoint: Endpoint,
                 }> = await res.json();
-                // TODO: Multi-project.
-                const ops = data.operations[0].filter(x => x.action === OperationAction.StartCompute);
-                const sum = ops.reduce((acc, op) => acc + op.total_duration_ms, 0);
-                let min = Number.MAX_SAFE_INTEGER;
-                let max = Number.MIN_SAFE_INTEGER;
-                ops.forEach(({ total_duration_ms }) => {
-                    if (min > total_duration_ms) {
-                        min = total_duration_ms;
-                    }
-                    if (max < total_duration_ms) {
-                        max = total_duration_ms;
-                    }
-                })
-                const avg = sum / ops.length;
-                const chartDataPoints: Array<Point> = ops.map(x => ({
-                    x: new Date(x.created_at).getTime(),
-                    y: x.total_duration_ms
-                }));
-
                 setEndpoint(data.endpoint);
-                setState({
-                    loading: false,
-                    error: undefined,
-                    data: {
-                        avg,
-                        min,
-                        max,
-                        datapoints: chartDataPoints
-                    }
-                });
             } catch (err) {
-                if (typeof err === "string") {
-                    setState({
-                        loading: false,
-                        error: err,
-                        data: undefined,
-                    });
-                } else {
-                    setState({
-                        loading: false,
-                        error: JSON.stringify(error),
-                        data: undefined,
-                    });
-                }
+                // TODO: 
+                console.error("Err");
             }
         };
 
         asyncOp();
     }, []);
 
-    datasets[0].data = data?.datapoints || [];
+    // datasets[0].data = data?.datapoints || [];
     datasets[0].backgroundColor = (context: ScriptableContext<"line">) => {
         const ctx = context.chart.ctx;
-        const gradient = ctx.createLinearGradient(0, 0, 0, ((data ? data.max : 500) / 3.5));
+        const gradient = ctx.createLinearGradient(0, 0, 0, 200);
         gradient.addColorStop(0, "rgba(56, 189, 248, 0.4)");
         gradient.addColorStop(1, "rgba(56, 189, 248, 0)");
         return gradient;
@@ -190,17 +175,18 @@ export default function Analytics() {
         datasets
     };
 
-    if (error) {
-        return (
-            <>
-                <div>
-                    <div className='flex mb-10 space-x-4 items-center'>
-                        {error}
-                    </div>
-                </div>
-            </>
-        )
-    }
+    // TODO: Fill error.
+    // if (error) {
+    //     return (
+    //         <>
+    //             <div>
+    //                 <div className='flex mb-10 space-x-4 items-center'>
+    //                     {error}
+    //                 </div>
+    //             </div>
+    //         </>
+    //     )
+    // }
 
     return (
         <>
@@ -216,21 +202,21 @@ export default function Analytics() {
                 */}
                 <div className='h-72'>
                     <Chart
-                        avg={data?.avg}
-                        max={data?.max}
-                        min={data?.min}
+                        avg={lastBenchmark?.avg}
+                        max={lastBenchmark?.max}
+                        min={lastBenchmark?.min}
                         chartData={chartData}
                         display={display}
                     />
                 </div>
             </div>
             <div className="flex justify-between pt-10">
-                <Stat selected={display === Display.Average} stat={data ? `${data.avg.toFixed(0)}ms` : "-"} title="Average" id="avgStat" onClick={onClick} />
-                <Stat selected={display === Display.Maximum} stat={data ? `${data.max.toFixed(0)}ms` : "-"} title="Maximum" id="maxStat" onClick={onClick} />
-                <Stat selected={display === Display.Minimum} stat={data ? `${data.min.toFixed(0)}ms` : "-"} title="Minimum" id="minStat" onClick={onClick} />
+                <Stat selected={display === Display.Average} stat={lastBenchmark ? `${lastBenchmark.avg.toFixed(0)}ms` : "-"} title="Average" id="avgStat" onClick={onClick} />
+                <Stat selected={display === Display.Maximum} stat={lastBenchmark ? `${lastBenchmark.max.toFixed(0)}ms` : "-"} title="Maximum" id="maxStat" onClick={onClick} />
+                <Stat selected={display === Display.Minimum} stat={lastBenchmark ? `${lastBenchmark.min.toFixed(0)}ms` : "-"} title="Minimum" id="minStat" onClick={onClick} />
             </div>
             <div className="text-center">
-                {endpoint && <Benchmark endpoint={endpoint} handleBenchmarkId={(id) => setBenchmarkId(id)} />}
+                <Benchmark endpoint={endpoint} handleBenchmarkId={(id) => setBenchmarkId(id)} />
             </div>
         </>
     );
