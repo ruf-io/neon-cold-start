@@ -3,6 +3,10 @@ import { NextResponse } from 'next/server';
 import { fetchAllItems, neonApiClient, NEON_API_KEY, NEON_CONNECTION_STRING } from './utils';
 import { parse } from 'pg-connection-string';
 
+/**
+ * Return all the projects, their operations, and the related endpoint (using the connection string in the env var.)
+ * @returns 
+ */
 export async function GET() {
     if (!NEON_API_KEY) {
         return NextResponse.json({ error: 'API KEY is missing.' }, { status: 500 });

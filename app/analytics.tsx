@@ -1,6 +1,6 @@
 "use client";
 import { MouseEventHandler, useCallback, useEffect, useMemo, useState } from 'react';
-import { Endpoint, Operation, OperationAction, Project } from '@neondatabase/api-client';
+import { Endpoint, Operation, Project } from '@neondatabase/api-client';
 import { Response } from './api/utils';
 import Stat from '@/components/stat';
 import Chart, { Display } from '@/components/chart';
@@ -13,13 +13,6 @@ interface BenchmarkRun {
     ts: string,
     duration: number,
 }
-
-// interface Benchmark {
-//     max: number;
-//     min: number;
-//     avg: number;
-//     runDate: Date;
-// }
 
 // Is this interface correct?
 interface BenchmarkStats {
@@ -45,34 +38,11 @@ interface State<T> {
 }
 
 export default function Analytics() {
-    // TODO: Implement loading + error.
-    // const [{
-    //     loading,
-    //     error,
-    //     data
-    // }, setState] = useState<State<Analytics>>({
-    //     loading: true,
-    //     error: undefined,
-    //     data: undefined
-    // });
-    // const [benchmarks, setBenchmarks] = useState<Array<Benchmark>>(undefined);
-    const [benchmarkId, setBenchmarkId] = useState<string | undefined>(undefined);
     const [endpoint, setEndpoint] = useState<Endpoint | undefined>(undefined);
+    const [benchmarkId, setBenchmarkId] = useState<string | undefined>(undefined);
     const [benchmark, setBenchmark] = useState<Array<Point> | undefined>(undefined);
     const [lastBenchmark, setLastBenchmark] = useState<BenchmarkStats | undefined>(undefined);
     const [display, setDisplay] = useState<undefined | Display>(undefined);
-    // const lineDataset = useMemo<ChartDataset<"line">>(() => {
-    //     return {
-    //         data: [],
-    //         pointRadius: 2,
-    //         borderWidth: 1,
-    //         tension: 0.25,
-    //         borderColor: "rgb(56, 189, 248)",
-    //         label: "Compute start",
-    //         type: "line",
-    //         fill: "start",
-    //     };
-    // }, []);
     const benchmarkDataset = useMemo<ChartDataset<"line">>(() => {
         return {
             data: benchmark || [],
@@ -215,7 +185,7 @@ export default function Analytics() {
                 <Stat selected={display === Display.Maximum} stat={lastBenchmark ? `${lastBenchmark.max.toFixed(0)}ms` : "-"} title="Maximum" id="maxStat" onClick={onClick} />
                 <Stat selected={display === Display.Minimum} stat={lastBenchmark ? `${lastBenchmark.min.toFixed(0)}ms` : "-"} title="Minimum" id="minStat" onClick={onClick} />
             </div>
-            <div className="text-center">
+            <div className="text-center m-auto mt-10">
                 <Benchmark endpoint={endpoint} handleBenchmarkId={(id) => setBenchmarkId(id)} />
             </div>
         </>
