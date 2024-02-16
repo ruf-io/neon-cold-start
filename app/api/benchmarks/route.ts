@@ -1,10 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { NEON_CONNECTION_STRING, neonApiClient, waitEndpointIdle, waitProjectOpFinished } from '../utils';
+import { NEON_CONNECTION_STRING } from '../utils';
 import { neon } from '@neondatabase/serverless';
 import { randomUUID } from 'crypto';
 
 /**
- * Start up queries
+ * Start up queries.
+ * 
+ * These queries will run when initializing a new benchmark.
  */
 const startUpQueries = [
     "CREATE TABLE IF NOT EXISTS benchmarks (id TEXT, duration INT, ts TIMESTAMP);",
@@ -13,9 +15,13 @@ const startUpQueries = [
     "CREATE INDEX IF NOT EXISTS benchmark_table_idx ON benchmark_table (A);"
 ];
 
-const benchmarkQuery = "SELECT * FROM benchmark_big_table WHERE a = 1000000;";
-
-// TODO: Separate init from benchmark
+/**
+ * Initializes a benchmark and returns its ID.
+ * 
+ * A benchmark run 
+ * @param req 
+ * @returns 
+ */
 export async function POST(req: NextRequest) {
     const { init, id, projectId, endpointId } = await req.json();
 
@@ -29,7 +35,7 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: 'Benchmark ID is missing.' }, { status: 500 });
     }
     const sql = neon(NEON_CONNECTION_STRING);
-    const benchmarkId = id || randomUUID();
+    const benchmarkId = randomUUID();
 
     if (init) {
         console.log("Initializing branch database.");
@@ -39,31 +45,6 @@ export async function POST(req: NextRequest) {
         }
     }
 
-    console.log("Wait op finish.")
-    // Running an operation while another is running errs.
-    await waitProjectOpFinished(projectId);
-
-    const endpoint = await neonApiClient.getProjectEndpoint(projectId, endpointId);
-    if (endpoint.data.endpoint.current_state !== "idle") {
-        console.log("Suspending endpoint.")
-        // Suspend endpoint.
-        await neonApiClient.suspendProjectEndpoint(projectId, endpointId);
-    } else {
-        console.log("Endpoint is already suspended.");
-    }
-
-    console.log("Wait endpoint idle.")
-    // Wait until the endpoint is idle.
-    await waitEndpointIdle(projectId, endpointId);
-
-    // Run select operation to trigger compute.
-    const before = new Date();
-    await sql(benchmarkQuery);
-    const after = new Date();
-    const benchmarkValue = after.getTime() - before.getTime();
-
-    await sql`INSERT INTO benchmarks VALUES (${benchmarkId}, ${benchmarkValue}, now())`;
-
     return NextResponse.json({
         data: {
             id: benchmarkId
@@ -71,7 +52,11 @@ export async function POST(req: NextRequest) {
     }, { status: 200 });
 }
 
-export async function GET(req: NextRequest) {
+/**
+ * Get all the benchmarks from a branch with their stats sorted by timestamp.
+ * @returns benchmarks and their stats.
+ */
+export async function GET() {
     if (!NEON_CONNECTION_STRING) {
         return NextResponse.json({ error: 'Neon DB URL is missing.' }, { status: 500 });
     }
