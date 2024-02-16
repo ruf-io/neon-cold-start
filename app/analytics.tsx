@@ -185,7 +185,7 @@ export default function Analytics() {
                 <Stat selected={display === Display.Maximum} stat={lastBenchmark ? `${lastBenchmark.max.toFixed(0)}ms` : "-"} title="Maximum" id="maxStat" onClick={onClick} />
                 <Stat selected={display === Display.Minimum} stat={lastBenchmark ? `${lastBenchmark.min.toFixed(0)}ms` : "-"} title="Minimum" id="minStat" onClick={onClick} />
             </div>
-            <div className="text-center m-auto mt-10">
+            <div className="text-center m-auto mt-10 w-fit">
                 <Benchmark endpoint={endpoint} handleBenchmarkId={(id) => setBenchmarkId(id)} />
             </div>
         </>
