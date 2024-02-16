@@ -1,6 +1,6 @@
 "use client";
 import { MouseEventHandler, useCallback, useEffect, useMemo, useState } from 'react';
-import { Endpoint, Operation, Project } from '@neondatabase/api-client';
+import { Endpoint, Operation, OperationAction, Project } from '@neondatabase/api-client';
 import { Response } from './api/utils';
 import Stat from '@/components/stat';
 import Chart, { Display } from '@/components/chart';
@@ -51,7 +51,7 @@ export default function Analytics() {
             tension: 0.25,
             // borderColor: "rgb(255, 134, 69)",
             borderColor: "rgb(56, 189, 248)",
-            label: "Compute start + query latency",
+            label: "Cold start",
             type: "line",
             fill: "start",
         };
@@ -86,25 +86,61 @@ export default function Analytics() {
         const asyncOp = async () => {
             try {
                 // TODO: Replace with latest benchmark
-                const response = await fetch('/api/benchmarks');
-                const benchmarksStatsData: Response<{ benchmarks: Array<BenchmarkStats> }> = await response.json();
-                const { benchmarks: benchmarksStats } = benchmarksStatsData.data;
+                // const response = await fetch('/api/benchmarks');
+                // const benchmarksStatsData: Response<{ benchmarks: Array<BenchmarkStats> }> = await response.json();
+                // const { benchmarks: benchmarksStats } = benchmarksStatsData.data;
+
+                const res = await fetch("/api",);
+
+                // TODO: Projects is not used.
+                const { data }: Response<{
+                    operations: Array<Array<Operation>>,
+                    projects: Array<Project>,
+                    endpoint: Endpoint,
+                }> = await res.json();
+
+                const ops = data.operations[0].filter(x => x.action === OperationAction.StartCompute);
+                const sum = ops.reduce((acc, op) => acc + op.total_duration_ms, 0);
+                let min = Number.MAX_SAFE_INTEGER;
+                let max = Number.MIN_SAFE_INTEGER;
+                ops.forEach(({ total_duration_ms }) => {
+                    if (min > total_duration_ms) {
+                        min = total_duration_ms;
+                    }
+                    if (max < total_duration_ms) {
+                        max = total_duration_ms;
+                    }
+                })
+                const avg = sum / ops.length;
+                const chartDataPoints: Array<Point> = ops.map(x => ({
+                    x: new Date(x.created_at).getTime(),
+                    y: x.total_duration_ms
+                }));
+
+                setLastBenchmark({
+                    avg,
+                    max,
+                    min,
+                    id: "foo",
+                    ts: new Date()
+                })
+                setBenchmark(chartDataPoints);
 
                 // Benchmarks are sorted by timestamp. The head is the latest.
-                let lastBenchmarkStats: BenchmarkStats | undefined = benchmarksStats[0];
-                console.log("Benchs: ", lastBenchmarkStats, benchmarksStats);
+                // let lastBenchmarkStats: BenchmarkStats | undefined = benchmarksStats[0];
+                // console.log("Benchs: ", lastBenchmarkStats, benchmarksStats);
 
-                const benchmarkRunsResponse = await fetch(`/api/benchmarks/${lastBenchmarkStats.id}`);
-                const benchmarkRunData: Response<{ benchmarks: Array<BenchmarkRun> }> = await benchmarkRunsResponse.json();
-                const { benchmarks: benchmarkRuns } = benchmarkRunData.data;
+                // const benchmarkRunsResponse = await fetch(`/api/benchmarks/${lastBenchmarkStats.id}`);
+                // const benchmarkRunData: Response<{ benchmarks: Array<BenchmarkRun> }> = await benchmarkRunsResponse.json();
+                // const { benchmarks: benchmarkRuns } = benchmarkRunData.data;
 
-                console.log(lastBenchmarkStats);
-                setLastBenchmark(lastBenchmarkStats);
-                // TODO: Fix any here.
-                setBenchmark(benchmarkRuns.map(({ ts, duration }: BenchmarkRun) => ({
-                    x: ts,
-                    y: duration,
-                } as any)));
+                // console.log(lastBenchmarkStats);
+                // setLastBenchmark(lastBenchmarkStats);
+                // // TODO: Fix any here.
+                // setBenchmark(benchmarkRuns.map(({ ts, duration }: BenchmarkRun) => ({
+                //     x: ts,
+                //     y: duration,
+                // } as any)));
             } catch (err) {
                 console.error(err);
             }
