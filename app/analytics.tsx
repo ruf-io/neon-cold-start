@@ -81,6 +81,7 @@ export default function Analytics() {
     useEffect(() => {
         const asyncOp = async () => {
             try {
+                setBenchmarkPage(false);
                 const res = await fetch(`/api?query=${filtertoString(filter)}`);
 
                 const { data }: Response<{
