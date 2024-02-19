@@ -24,6 +24,7 @@ export async function GET(req: NextRequest) {
     };
 
     const sql = neon(NEON_CONNECTION_STRING);
+
     // The SQL interval is not usable here because parametrizing it causes an error.
     const today = new Date();
     switch (query) {

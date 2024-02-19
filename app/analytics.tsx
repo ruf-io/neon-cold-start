@@ -6,6 +6,7 @@ import Chart, { Display } from '@/components/chart';
 import { ChartData, ChartDataset, Point, ScriptableContext } from 'chart.js';
 import Question from '@/components/question';
 import DateFilter, { Filter, filtertoString } from '@/components/dateFilter';
+import Error from "@/components/error";
 
 interface Benchmark {
     max: number;
@@ -24,8 +25,13 @@ interface State<T> {
 
 export default function Analytics() {
     const [filter, setFilter] = useState<Filter>(Filter.Day);
-    const [benchmark, setBenchmark] = useState<Benchmark | undefined>(undefined);
     const [display, setDisplay] = useState<undefined | Display>(undefined);
+    const [state, setState] = useState<State<Benchmark>>({
+        loading: true,
+        error: undefined,
+        data: undefined
+    });
+    const { loading, error, data: benchmark } = state;
     const benchmarkDataset = useMemo<ChartDataset<"line">>(() => {
         return {
             data: benchmark ? benchmark.datapoints : [],
@@ -88,14 +94,31 @@ export default function Analytics() {
                     }
                 })
                 const avg = sum / dataPoints.length;
-                setBenchmark({
-                    datapoints: (data as any).dataPoints,
-                    avg,
-                    max,
-                    min,
+                setState({
+                    loading: false,
+                    error: undefined,
+                    data: {
+                        datapoints: (data as any).dataPoints,
+                        avg,
+                        max,
+                        min,
+                    },
                 });
             } catch (err) {
                 console.error(err);
+                if (typeof err === "string") {
+                    setState({
+                        loading: false,
+                        error: err,
+                        data: undefined
+                    });
+                } else {
+                    setState({
+                        loading: false,
+                        error: JSON.stringify(err),
+                        data: undefined
+                    });
+                }
             }
         }
         asyncOp();
@@ -116,28 +139,36 @@ export default function Analytics() {
     return (
         <>
             <div className='px-16'>
-                <div className='flex w-full'>
-                    <div className='mb-10 flex space-x-4 items-center'>
-                        <p className="text-xl text-gray-400 font-extralight">Cold Start Times</p>
-                        <Question text='Benchmark' />
+                {loading &&
+                    <svg className="m-auto left-1/2 top-1/2 absolute animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                }
+                {error &&
+                    <div className="m-auto left-1/2 top-1/2 ">
+                        <Error message='This is a big error' />
                     </div>
-                    <div className='ml-auto order-3'>
-                        <DateFilter filter={filter} handleChange={onFilterChange} />
+                }
+                <div className={`${(loading || error) ? "invisible" : "visible"}`}>
+                    <div className='flex w-full'>
+                        <div className='mb-10 flex space-x-4 items-center'>
+                            <p className="text-xl text-gray-400 font-extralight">Cold Start Times</p>
+                            <Question text='Benchmark' />
+                        </div>
+                        <div className='ml-auto order-3'>
+                            <DateFilter filter={filter} handleChange={onFilterChange} />
+                        </div>
                     </div>
-                </div>
-                {/*
-                    Render after analytics are calculated.
-                    Otherwise, data is not displayed correctly.
-                    The alternative is to update the chart manually using the ref.
-                */}
-                <div className='h-72'>
-                    <Chart
-                        avg={benchmark?.avg}
-                        max={benchmark?.max}
-                        min={benchmark?.min}
-                        chartData={chartData}
-                        display={display}
-                    />
+                    <div className='h-72'>
+                        <Chart
+                            avg={benchmark?.avg}
+                            max={benchmark?.max}
+                            min={benchmark?.min}
+                            chartData={chartData}
+                            display={display}
+                        />
+                    </div>
                 </div>
             </div>
             <div className="flex justify-between pt-10">
