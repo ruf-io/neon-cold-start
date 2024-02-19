@@ -35,7 +35,7 @@ export default function Analytics() {
     const benchmarkDataset = useMemo<ChartDataset<"line">>(() => {
         return {
             data: benchmark ? benchmark.datapoints : [],
-            pointRadius: 2,
+            pointRadius: 0,
             borderWidth: 1,
             tension: 0.25,
             borderColor: "rgb(56, 189, 248)",

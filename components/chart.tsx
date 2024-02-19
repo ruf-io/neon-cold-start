@@ -36,7 +36,11 @@ const Chart = (props: Props) => {
         ) => {
             const radius = (ctx: ScriptableContext<"line">) => {
                 var value = ctx.dataset.data[ctx.dataIndex] as Point;
-                return (value && value.y === matchingValue) ? 15 : 2;
+                return (value && value.y === matchingValue) ? 15 : 0;
+            };
+            const pointHoverRadius = (ctx: ScriptableContext<"line">) => {
+                var value = ctx.dataset.data[ctx.dataIndex] as Point;
+                return (value && value.y === matchingValue) ? 15 : 10;
             };
             const colorBuilder = (border?: boolean) => {
                 return (ctx: ScriptableContext<"line">) => {
@@ -49,7 +53,7 @@ const Chart = (props: Props) => {
                 }
             }
             dataset.pointRadius = radius;
-            dataset.pointHoverRadius = radius;
+            dataset.pointHoverRadius = pointHoverRadius;
             dataset.pointBorderColor = colorBuilder();
             dataset.pointBackgroundColor = colorBuilder();
         }
@@ -74,7 +78,7 @@ const Chart = (props: Props) => {
                         );
                     } else {
                         // Default options
-                        dataset.pointRadius = 2;
+                        dataset.pointRadius = 0;
                         dataset.pointBorderColor = "rgb(56, 189, 248)";
                         dataset.pointBackgroundColor = "rgb(56, 189, 248, 0.5)";
                     }
@@ -105,6 +109,11 @@ const Chart = (props: Props) => {
                         }
                     }
                 }
+            },
+            interaction: {
+                mode: 'nearest',
+                intersect: false,
+                axis: 'x'
             },
             scales: {
                 y: {
