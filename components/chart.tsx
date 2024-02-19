@@ -1,4 +1,4 @@
-import React, { forwardRef, useEffect, useRef } from "react";
+import React, { useEffect, useRef } from "react";
 import { Line } from "react-chartjs-2";
 import { ChartData, ChartDataset, Point, ScriptableContext } from 'chart.js';
 import { Chart as ChartJS, registerables } from 'chart.js';
@@ -28,6 +28,7 @@ const Chart = (props: Props) => {
 
     useEffect(() => {
         const setStyles = (
+            // dataset: ChartDataset<"line", (number | [number, number] | null)[]>,
             dataset: ChartDataset<"line", (number | Point | null)[]>,
             matchingValue: number | undefined,
             pointBorderColor: string,

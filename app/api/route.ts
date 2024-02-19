@@ -1,13 +1,20 @@
-import { Endpoint, Project } from '@neondatabase/api-client';
-import { NextResponse } from 'next/server';
-import { fetchAllItems, neonApiClient, NEON_API_KEY, NEON_CONNECTION_STRING } from './utils';
-import { parse } from 'pg-connection-string';
+import { NextRequest, NextResponse } from 'next/server';
+import { NEON_API_KEY, NEON_CONNECTION_STRING } from './utils';
+import { neon } from '@neondatabase/serverless';
+
+/**
+ * Valid set of filters for the query.
+ */
+const filters = new Set(["day", "week", "month"]);
 
 /**
  * Return all the projects, their operations, and the related endpoint (using the connection string in the env var.)
  * @returns 
  */
-export async function GET() {
+export async function GET(req: NextRequest) {
+    const searchParams = req.nextUrl.searchParams;
+    const query = searchParams.get('query');
+
     if (!NEON_API_KEY) {
         return NextResponse.json({ error: 'API KEY is missing.' }, { status: 500 });
     };
@@ -16,34 +23,32 @@ export async function GET() {
         return NextResponse.json({ error: 'Database url is missing.' }, { status: 500 });
     };
 
-    const projects: Array<Project> = await fetchAllItems(neonApiClient.listProjects, {}, "projects");
-    const projectEndpointsPromise = projects.map(x => neonApiClient.listProjectEndpoints(x.id));
-    const operationsPerProjectPromise = projects.map(x => fetchAllItems(neonApiClient.listProjectOperations, { projectId: x.id }, "operations"));
-    const operations = await Promise.all(operationsPerProjectPromise);
-    const projectEndpoints = await Promise.all(projectEndpointsPromise);
-
-    const { host: hostWithoutCleaning } = parse(NEON_CONNECTION_STRING);
-    if (!hostWithoutCleaning) {
-        return NextResponse.json({ error: 'Host is missing from database url.' }, { status: 500 });
+    const sql = neon(NEON_CONNECTION_STRING);
+    // The SQL interval is not usable here because parametrizing it causes an error.
+    const today = new Date();
+    switch (query) {
+        case 'day':
+            today.setDate(today.getDate() - 1);
+            break;
+        case 'week':
+            today.setDate(today.getDate() - 7);
+            break;
+        case 'month':
+            today.setDate(today.getDate() - 30);
+            break;
+        default:
+            break;
     }
 
-    // The host available in the endpoint is not the pooler.
-    const host = hostWithoutCleaning.replace("-pooler", "");
-    let endpoint;
-    projectEndpoints.forEach(({ data }) => {
-        const { endpoints } = data;
-        return endpoints.forEach((x: Endpoint) => {
-            if (x.host === host) {
-                endpoint = x;
-            }
-        });
-    });
+    const rows = await sql`SELECT duration, ts FROM benchmarks WHERE ts > ${today.toISOString()} ORDER BY ts DESC;`;
+    const dataPoints = rows.map(x => ({
+        x: x.ts,
+        y: x.duration,
+    }));
 
     return NextResponse.json({
         data: {
-            operations,
-            projects,
-            endpoint,
+            dataPoints
         }
     }, { status: 200 });
 }
