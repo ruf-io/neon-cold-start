@@ -5,8 +5,10 @@ import Zero from "@/content/zero.mdx";
 import Apps from "@/content/apps.mdx";
 import Env from "@/content/env.mdx";
 import Picutre from "@/content/picture.mdx";
+import { useMDXComponents } from "@/mdx-components";
 
 export default function Home() {
+    const components = useMDXComponents({});
     return (
         <main className="flex min-h-screen flex-col items-center p-24 py-16">
             {/* Header */}
@@ -16,7 +18,7 @@ export default function Home() {
                         Neon Cold Start Benchmarks
                     </h1>
                     <div className="text-gray-600 mt-4 w-2/3">
-                        An open-source tool to benchmark cold starts.
+                        An open-source tool to measure cold starts.
                     </div>
                 </div>
                 <div className="ml-auto my-auto ">
@@ -38,18 +40,18 @@ export default function Home() {
                         Storage size makes no difference.
                     </div>
                 </div>
-                <h1 className="text-4xl text-center font-semibold my-20">Scale to zero</h1>
-                <div className="flex flex-col space-y-20">
-                    <div>
-                        <Env />
+                <h1 className="text-5xl text-center font-semibold mt-20">Scale to zero</h1>
+                <div className="flex flex-col">
+                    <div className="p-14 border-gray-600 border-opacity-40">
+                        <Env components={components} />
                     </div>
-                    <div>
+                    <div className="border-b-0 border-x-0 border p-10 border-gray-600 border-opacity-40">
                         <Zero />
                     </div>
-                    <div>
+                    <div className="border-b-0 border-x-0 border p-10 border-gray-600 border-opacity-40">
                         <Apps />
                     </div>
-                    <div>
+                    <div className="border-b-0 border-x-0 border p-10 border-gray-600 border-opacity-40">
                         <Picutre />
                     </div>
                 </div>

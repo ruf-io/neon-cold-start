@@ -1,11 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { NEON_API_KEY, NEON_CONNECTION_STRING } from './utils';
 import { neon } from '@neondatabase/serverless';
 
-/**
- * Valid set of filters for the query.
- */
-const filters = new Set(["day", "week", "month"]);
+export const NEON_CONNECTION_STRING = process.env["NEON_CONNECTION_STRING"];
 
 /**
  * Return all the projects, their operations, and the related endpoint (using the connection string in the env var.)
@@ -14,10 +10,6 @@ const filters = new Set(["day", "week", "month"]);
 export async function GET(req: NextRequest) {
     const searchParams = req.nextUrl.searchParams;
     const query = searchParams.get('query');
-
-    if (!NEON_API_KEY) {
-        return NextResponse.json({ error: 'API KEY is missing.' }, { status: 500 });
-    };
 
     if (!NEON_CONNECTION_STRING) {
         return NextResponse.json({ error: 'Database url is missing.' }, { status: 500 });
@@ -38,7 +30,7 @@ export async function GET(req: NextRequest) {
             today.setDate(today.getDate() - 30);
             break;
         default:
-            break;
+            return NextResponse.json({ error: 'Invalid query filter.' }, { status: 500 })
     }
 
     const rows = await sql`SELECT duration, ts FROM benchmarks WHERE ts > ${today.toISOString()} ORDER BY ts DESC;`;
