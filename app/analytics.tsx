@@ -183,7 +183,7 @@ export default function Analytics() {
                     <Stat selected={display === Display.Minimum} stat={benchmark ? `${benchmark.min.toFixed(0)}ms` : "-"} title="Minimum" id="minStat" onClick={onClick} />
                 </div>
             </div>
-            <div className="text-center m-auto my-10 w-fit">
+            <div className="text-center m-auto mt-10 w-fit">
                 <button
                     type="button"
                     className="bg-indigo-600 text-white mx-auto inline-flex items-center gap-x-1.5 rounded-md disabled:bg-indigo-900 px-3 py-2 text-sm font-semibold shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
@@ -195,7 +195,9 @@ export default function Analytics() {
                     Benchmark
                 </button>
             </div>
-            {benchmarkPage && benchmark && <Benchmark duration={benchmark.avg} altDuration={benchmark.max} />}
+            <div className='mt-14'>
+                {benchmarkPage && benchmark && <Benchmark duration={benchmark.avg} altDuration={benchmark.max} />}
+            </div>
         </>
     );
 }

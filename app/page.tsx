@@ -34,13 +34,13 @@ export default function Home() {
             </div>
 
             {/* Content */}
-            <div className="w-2/3 mt-16">
+            <div className="w-2/3 mt-14">
                 <div className=" bg-gray-50 rounded-sm bg-opacity-5 p-10 h-52 font-semibold">
                     <div className="text-4xl text-white">
                         Storage size makes no difference.
                     </div>
                 </div>
-                <h1 className="text-5xl text-center font-semibold mt-20">Scale to zero</h1>
+                <h1 className="text-5xl text-center font-semibold mt-14">Scale to zero</h1>
                 <div className="flex flex-col">
                     <div className="p-14 border-gray-600 border-opacity-40">
                         <Env components={components} />
