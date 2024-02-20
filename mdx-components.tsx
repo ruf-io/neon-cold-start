@@ -9,8 +9,8 @@ import Image, { ImageProps } from 'next/image'
 export function useMDXComponents(components: MDXComponents): MDXComponents {
     return {
         // Allows customizing built-in components, e.g. to add styling.
-        h1: ({ children }) => <h1 className='text-5xl'>{children}</h1>,
-        h2: ({ children }) => <h2 className='text-4xl font-bold text-white text-opacity-100'>{children}</h2>,
+        h1: ({ children }) => <h1 className='text-5xl font-bold text-white'>{children}</h1>,
+        h2: ({ children }) => <h2 className='text-4xl font-bold text-white'>{children}</h2>,
         p: ({ children }) => <p className='text-gray-400 font-light'>{children}</p>,
         img: (props) => (
             <Image
@@ -19,6 +19,8 @@ export function useMDXComponents(components: MDXComponents): MDXComponents {
                 {...(props as ImageProps)}
             />
         ),
+        li: ({ children }) => <li className='text-gray-400 font-light'>{children}</li>,
+        ul: ({ children }) => <ul >{children}</ul>,
         ...components,
     }
 }

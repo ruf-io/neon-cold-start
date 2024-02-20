@@ -9,6 +9,7 @@ import { useMDXComponents } from "@/mdx-components";
 
 export default function Home() {
     const components = useMDXComponents({});
+
     return (
         <main className="flex min-h-screen flex-col items-center p-24 py-16">
             {/* Header */}
@@ -46,13 +47,13 @@ export default function Home() {
                         <Env components={components} />
                     </div>
                     <div className="border-b-0 border-x-0 border p-10 border-gray-600 border-opacity-40">
-                        <Zero />
+                        <Zero components={components} />
                     </div>
                     <div className="border-b-0 border-x-0 border p-10 border-gray-600 border-opacity-40">
-                        <Apps />
+                        <Apps components={components} />
                     </div>
                     <div className="border-b-0 border-x-0 border p-10 border-gray-600 border-opacity-40">
-                        <Picutre />
+                        <Picutre components={components} />
                     </div>
                 </div>
             </div>

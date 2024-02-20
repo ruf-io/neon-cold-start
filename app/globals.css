@@ -2,11 +2,11 @@
 
 @layer base {
     h1 {
-        @apply text-2xl;
+        @apply text-2xl mb-4;
     }
 
     h2 {
-        @apply text-xl;
+        @apply text-xl mb-4;
     }
 
     h3 {
@@ -19,7 +19,7 @@
 
     ol,
     ul {
-        @apply list-disc list-inside;
+        @apply list-disc list-inside marker:text-white;
     }
 }
 
