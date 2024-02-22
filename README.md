@@ -2,16 +2,26 @@ This is a [Neon](http://neon.tech) tool to benchmark cold starts.
 
 ## Getting Started
 
-1. Clone the repo and install the dependencies:
+1. Install the dependencies:
     ```bash
     npm install
     ```
-2. Create an `.env` file using `.env.example` as template.
-3. Run the development server:
+2. Start the benchmark:
+```bash
+    API_KEY=""
+
+    # Using cron.
+    cron ...
+
+    # AWS Lambda
+    aws ...
+```
+3. Create an `.env` file using `.env.example` as template.
+4. Run the development server:
     ```bash
     npm run serve
     ```
-4. Open [http://localhost:3000](http://localhost:3000) with your browser to run the benchmark. Remember to keep the browser open while the benchmark is running.
+5. Open [http://localhost:3000](http://localhost:3000) with your browser to run the benchmark. Remember to keep the browser open while the benchmark is running.
 
 ## The problem
 Neon suspends the database compute to save resources after five minutes of inactivity. The next time the database needs to process a query, the compute will need to resume. This is known as the cold-start problem. Understanding how much time takes the cold-start is the idea for this project.
