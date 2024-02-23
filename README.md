@@ -14,6 +14,7 @@ This is a [Neon](http://neon.tech) tool to benchmark cold starts.
     cron ...
 
     # AWS Lambda
+    # Add timeout (2 mins).
     aws ...
 ```
 3. Create an `.env` file using `.env.example` as template.
