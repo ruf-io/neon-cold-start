@@ -6,7 +6,9 @@
         "dev": "next dev",
         "build": "next build",
         "start": "next start",
-        "lint": "next lint"
+        "lint": "next lint",
+        "setup": "node setup/init.js",
+        "benchmark": "node -e \"require('./setup/index').handler()\""
     },
     "dependencies": {
         "@mdx-js/loader": "^3.0.0",
@@ -19,7 +21,9 @@
         "chartjs-adapter-date-fns": "^3.0.0",
         "chartjs-plugin-annotation": "^3.0.1",
         "date-fns": "^3.3.1",
+        "dotenv": "^16.4.5",
         "next": "14.1.0",
+        "pg": "^8.11.3",
         "pg-connection-string": "^2.6.2",
         "react": "^18",
         "react-chartjs-2": "^5.2.0",

@@ -1,11 +1,13 @@
 const { Pool } = require("pg");
 const { createApiClient } = require("@neondatabase/api-client");
 const { parse } = require("pg-connection-string");
+require('dotenv').config("../");
 
 /**
  * Benchmark database
  */
-const API_KEY = process.env["API_KEY"] || "3eqcblu3etv67twoix9pcham26qgdaz5pw6qbn3bvjz63325i2czgq8rk0qrt6m1";
+const API_KEY = process.env["API_KEY"];
+const PROJECT_REGION = process.env["PROJECT_REGION"] || "aws-us-east-1";
 const PROJECT_NAME = process.env["PROJECT_NAME"] || "Benchmark";
 const DATABASE_NAME = process.env["DATABASE_NAME"] || "neondb";
 const ROLE_NAME = process.env["ROLE_NAME"] || "BenchmarkRole";
@@ -70,7 +72,7 @@ const initProject = async (apiClient) => {
     const { data: createProjectData } = await apiClient.createProject({
         project: {
             name: PROJECT_NAME,
-            region_id: "aws-us-east-1",
+            region_id: PROJECT_REGION,
             branch: {
                 role_name: ROLE_NAME,
                 database_name: DATABASE_NAME
@@ -164,7 +166,7 @@ const getConfig = async (apiClient, projectId) => {
             main: mainEndpoints[0],
             benchmark: benchmarkEndpoints[0]
         },
-        password: {
+        passwords: {
             main: mainRolePassword.password,
             benchmark: benchmarkRolePassword.password
         }
@@ -216,12 +218,12 @@ const suspendProjectEndpoint = async (apiClient, projectId, endpointId) => {
     let suspended = false;
     while (!suspended) {
         try {
+            console.log("Project ID:", projectId);
             await apiClient.suspendProjectEndpoint(projectId, endpointId);
             suspended = true;
         } catch (err) {
             console.error("Error suspending project.")
-            console.error(err);
-
+            console.error(JSON.stringify(err));
             // Sleep.
             await new Promise((res) => { setTimeout(res, 500) });
         }
@@ -256,7 +258,7 @@ const benchmarkProject = async ({ id: projectId }, {
     // Ensure the endpoint is idle (suspended.)
     if (benchmarkEndpoint.current_state !== "idle") {
         console.log("Benchmark endpoint was not idle. Suspending endpoint.");
-        await suspendProjectEndpoint(apiClient, benchmarkEndpoint.id);
+        await suspendProjectEndpoint(apiClient, projectId, benchmarkEndpoint.id);
         await waitEndpointIdle(apiClient, projectId, benchmarkEndpoint.id);
     }
 
@@ -287,9 +289,8 @@ const benchmarkProject = async ({ id: projectId }, {
 
     // Save computing time
     await waitProjectOpFinished(apiClient, projectId);
-    await suspendProjectEndpoint(projectId, benchmarkEndpoint.id);
+    await suspendProjectEndpoint(apiClient, projectId, benchmarkEndpoint.id);
 }
-
 
 exports.handler = async () => {
     const apiClient = createApiClient({
