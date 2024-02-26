@@ -32,7 +32,7 @@ source .env
 ```
 2. Zip the code:
 ```bash
-zip -j lambda.zip ./setup/index.js && zip -rq lambda.zip node_modules -x "*next*"
+zip -j lambda.zip ./setup/index.js && zip -rq lambda.zip node_modules -x "*next*" -x "*.ts" -x "*chartjs*"
 ```
 3. Create a role:
 ```bash
@@ -46,8 +46,11 @@ LAMBDA_ARN=$(aws lambda create-function --function-name BenchmarkRunner --runtim
 ```
 5. Schedule every 30 minutes:
 ```bash
-aws events put-rule --name "NeonColdBenchmarkScheduler" --schedule-expression "cron(0/30 * * * ? *)"
-aws events put-targets --rule "NeonColdBenchmarkScheduler" --targets "Id"="1","Arn"="$LAMBDA_ARN"
+aws scheduler create-schedule \
+    --name NeonColdBenchmarkScheduler \
+    --schedule-expression "cron(0/30 * * * ? *)" \
+    --target "{\"RoleArn\": \"$ROLE_ARN\", \"Arn\":\"$LAMBDA_ARN\" }" \
+    --flexible-time-window '{ "Mode": "FLEXIBLE", "MaximumWindowInMinutes": 15}'
 ```
 
 ## The problem

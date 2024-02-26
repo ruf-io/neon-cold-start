@@ -1,7 +1,7 @@
 const { Pool } = require("pg");
 const { createApiClient } = require("@neondatabase/api-client");
 const { parse } = require("pg-connection-string");
-require('dotenv').config("../");
+require('dotenv').config({ path: "../" });
 
 /**
  * Benchmark database
@@ -293,6 +293,10 @@ const benchmarkProject = async ({ id: projectId }, {
 }
 
 exports.handler = async () => {
+    if (!API_KEY) {
+        throw new Error("API KEY is missing.");
+    }
+
     const apiClient = createApiClient({
         apiKey: API_KEY,
     });
@@ -310,5 +314,6 @@ exports.handler = async () => {
         await benchmarkProject(project, config, apiClient);
     } catch (err) {
         console.log(err);
+        throw err;
     }
 }
