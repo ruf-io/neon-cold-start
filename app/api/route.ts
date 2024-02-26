@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { neon } from '@neondatabase/serverless';
 
-export const NEON_CONNECTION_STRING = process.env["NEON_CONNECTION_STRING"];
+const NEON_CONNECTION_STRING = process.env["NEON_CONNECTION_STRING"];
 
 /**
  * Return all the projects, their operations, and the related endpoint (using the connection string in the env var.)

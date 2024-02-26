@@ -1,6 +1,5 @@
 "use client";
 import { MouseEventHandler, useCallback, useEffect, useMemo, useState } from 'react';
-import { Response } from './api/utils';
 import Stat from '@/components/stat';
 import Chart, { Display } from '@/components/chart';
 import { ChartData, ChartDataset, Point, ScriptableContext } from 'chart.js';
@@ -9,13 +8,15 @@ import DateFilter, { Filter, filtertoString } from '@/components/dateFilter';
 import Error from "@/components/error";
 import Benchmark from './benchmark';
 
+interface Response<T> {
+    data: T;
+};
+
 interface Benchmark {
     max: number;
     min: number;
     avg: number;
     datapoints: Array<Point>;
-    // For bars:
-    // datapoints: Array<[number, number]>;
 }
 
 interface State<T> {
