@@ -27,12 +27,12 @@ This is a [Neon](http://neon.tech) tool to benchmark cold starts.
 You can configure AWS to schedule a benchmark every 30 minutes. This will generate enough datapoints throughout the day to analyze the average time for cold starts.
 
 <details>
-<summary>Code</summary>
+<summary>Instructions</summary>
 <br>
 
 ```bash
 
-# 1. Load the environment variables:
+# 1. Load env. vars:
 source .env
 
 # 2. Zip the code:
