@@ -40,6 +40,7 @@ zip -j lambda.zip ./setup/index.js && zip -rq lambda.zip node_modules -x "*next*
 
 # 3. Create a role and attach the policy:
 ROLE_ARN=$(aws iam create-role --role-name neon-benchmark-lambda-execute-role --assume-role-policy-document file://setup/trust-policy.json --query 'Role.Arn' --output text)
+aws iam attach-role-policy --role-name neon-benchmark-lambda-execute-role --policy-arn arn:aws:iam::aws:policy/service-role/AWSLambdaRole
 aws iam attach-role-policy --role-name neon-benchmark-lambda-execute-role --policy-arn arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
 
 # 4. Upload the lambda code:
@@ -48,7 +49,7 @@ LAMBDA_ARN=$(aws lambda create-function --function-name BenchmarkRunner --runtim
 # 5. Schedule every 30 minutes:
 aws scheduler create-schedule \
     --name NeonColdBenchmarkScheduler \
-    --schedule-expression "cron(0/30 * * * ? *)" \
+    --schedule-expression "rate(30 minutes)" \
     --target "{\"RoleArn\": \"$ROLE_ARN\", \"Arn\":\"$LAMBDA_ARN\" }" \
     --flexible-time-window '{ "Mode": "FLEXIBLE", "MaximumWindowInMinutes": 15}'
 ```
