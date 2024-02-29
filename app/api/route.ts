@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { neon } from '@neondatabase/serverless';
 
-const NEON_CONNECTION_STRING = process.env["NEON_CONNECTION_STRING"];
+const CONNECTION_STRING = process.env["CONNECTION_STRING"];
 
 /**
  * Return all the projects, their operations, and the related endpoint (using the connection string in the env var.)
@@ -11,11 +11,11 @@ export async function GET(req: NextRequest) {
     const searchParams = req.nextUrl.searchParams;
     const query = searchParams.get('query');
 
-    if (!NEON_CONNECTION_STRING) {
+    if (!CONNECTION_STRING) {
         return NextResponse.json({ error: 'Database url is missing.' }, { status: 500 });
     };
 
-    const sql = neon(NEON_CONNECTION_STRING);
+    const sql = neon(CONNECTION_STRING);
 
     // The SQL interval is not usable here because parametrizing it causes an error.
     const today = new Date();

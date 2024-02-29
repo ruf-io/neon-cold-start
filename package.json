@@ -8,7 +8,8 @@
         "start": "next start",
         "lint": "next lint",
         "setup": "node setup/init.js",
-        "benchmark": "node -e \"require('./setup/index').handler()\""
+        "benchmark": "node -e \"require('./setup/index').handler()\"",
+        "deploy": "chmod +x deploy.sh && ./deploy.sh"
     },
     "dependencies": {
         "@mdx-js/loader": "^3.0.0",

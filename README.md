@@ -9,6 +9,7 @@ This is a [Neon](http://neon.tech) tool to benchmark cold starts.
 2. Create an `.env` file using `.env.example` as template.
 3. Setup the benchmark:
     ```bash
+    # This command will try to setup a new Neon project.
     # Add the output to the .env file
     npm run setup
     ```
@@ -24,14 +25,18 @@ This is a [Neon](http://neon.tech) tool to benchmark cold starts.
 
 ### Run recurrently
 
-You can configure AWS to schedule a benchmark every 30 minutes. This will generate enough datapoints throughout the day to analyze the average time for cold starts.
+You can configure AWS to schedule a benchmark every 30 minutes. This will generate enough datapoints throughout the day to analyze the average time for cold starts. To deploy on AWS run the following command:
+
+```bash
+# Make sure to install and configure the latest AWS CLI (https://aws.amazon.com/cli/).
+npm run deploy
+```
 
 <details>
 <summary>Instructions</summary>
 <br>
 
 ```bash
-
 # 1. Load env. vars:
 source .env
 
@@ -56,11 +61,16 @@ aws scheduler create-schedule \
 </details>
 
 ## The problem
+
 Neon suspends the database compute to save resources after five minutes of inactivity. The next time the database needs to process a query, the compute will need to resume. This is known as the cold-start problem. Understanding how much time takes the cold-start is the idea for this project.
+
+## Setup
+
+The code will setup a new project with two branches: main and benchmark. The main branch will store the benchmarks, while the benchmark branch is used to suspend and resume the compute and run the benchmarks.  
 
 ## Benchmark
 
-The application will run query all the benchmarks done and calculate basic metrics (avg, max, min). This will give you an overview on how much cold starts are taking. The benchmark will suspend your branch compute and request a simple read query over an indexed table:
+The benchmark itself is a lambda function that suspends the benchmark branch compute and runs a query in an indexed table:
 
 ```sql
 -- From the setup step:
@@ -72,11 +82,15 @@ CREATE INDEX IF NOT EXISTS series_idx ON series (serie_num);
 SELECT * FROM series WHERE serie_num = 1000000;
 ```
 
-After the benchmark, the result is stored in a table:
+After the benchmark, the result are stored in the main branch in the following table:
 
 ```sql
 CREATE TABLE IF NOT EXISTS benchmarks (id TEXT, duration INT, ts TIMESTAMP);
 ```
+
+## Application
+
+A web application will run a query over all the benchmarks stored in the main branch and calculate basic metrics (avg, max, min). This will give you an overview on how much cold starts are taking.
 
 ## Learn More
 

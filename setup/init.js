@@ -1,12 +1,13 @@
 const { Pool } = require("pg");
 const { createApiClient } = require("@neondatabase/api-client");
 const { parse } = require("pg-connection-string");
-require('dotenv').config("../");
+require('dotenv').config();
 
 /**
  * Benchmark database
  */
 const API_KEY = process.env["API_KEY"];
+const PROJECT_REGION = process.env["PROJECT_REGION"] || "aws-us-east-1";
 const PROJECT_NAME = process.env["PROJECT_NAME"] || "Benchmark";
 const DATABASE_NAME = process.env["DATABASE_NAME"] || "neondb";
 const ROLE_NAME = process.env["ROLE_NAME"] || "BenchmarkRole";
@@ -27,16 +28,16 @@ const initProject = async (apiClient) => {
     if (!API_KEY) {
         throw new Error("The API Key is missing. Make sure to declare it in your environment variables.");
     }
-    console.log("Initializing a new benchmark project.");
+    console.log("Initializing a new benchmark project on: ", PROJECT_REGION);
 
     // Create the project
     const { data: createProjectData } = await apiClient.createProject({
         project: {
             name: PROJECT_NAME,
-            region_id: "aws-us-east-1",
+            region_id: PROJECT_REGION,
             branch: {
                 role_name: ROLE_NAME,
-                database_name: DATABASE_NAME,
+                database_name: DATABASE_NAME
             },
         }
     });
@@ -52,7 +53,6 @@ const initProject = async (apiClient) => {
     const config = parse(mainConnectionUri);
     const mainPool = new Pool(config);
     await mainPool.query("CREATE TABLE IF NOT EXISTS benchmarks (id TEXT, duration INT, ts TIMESTAMP);");
-    mainPool.end();
 
     // Create the benchmark branch to do the benchmarks.
     const { data: benchmarkBranchData } = await apiClient.createProjectBranch(projectId, {
@@ -78,9 +78,9 @@ const initProject = async (apiClient) => {
     await benchmarkPool.query("CREATE INDEX IF NOT EXISTS series_idx ON series (serie_num);");
     benchmarkPool.end();
 
-    console.log("**IMPORTANT**");
-    console.log("\nAdd the following variable to your `.env` file:");
-    console.log(`NEON_CONNECTION_STRING=${mainConnectionUri.trim()}`);
+    console.log("\n**IMPORTANT**");
+    console.log("Add the following variable to your `.env` file:");
+    console.log(`CONNECTION_STRING=${mainConnectionUri.trim()}`);
 
     return project;
 }

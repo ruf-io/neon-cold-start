@@ -1,7 +1,7 @@
 const { Pool } = require("pg");
 const { createApiClient } = require("@neondatabase/api-client");
 const { parse } = require("pg-connection-string");
-require('dotenv').config({ path: "../" });
+require('dotenv').config();
 
 /**
  * Benchmark database
@@ -66,7 +66,7 @@ const fetchProjects = async (apiClient) => {
  * @returns {Promise<void>} A promise that resolves once the project and its branches are ready.
  */
 const initProject = async (apiClient) => {
-    console.log("Initializing a new benchmark project.");
+    console.log("Initializing a new benchmark project on :", PROJECT_REGION);
 
     // Create the project
     const { data: createProjectData } = await apiClient.createProject({
