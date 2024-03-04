@@ -1,43 +1,47 @@
 "use client";
-import { MouseEventHandler, useCallback, useEffect, useMemo, useState } from 'react';
-import Stat from '@/components/stat';
-import Chart, { Display } from '@/components/chart';
-import { ChartData, ChartDataset, Point, ScriptableContext } from 'chart.js';
+import { MouseEventHandler, useCallback, useMemo, useState } from 'react';
+import Stat, { formatFloatToStatString } from '@/components/stat';
+import Chart, { Display, statIdToDisplay } from '@/components/chart';
+import { ChartData, ChartDataset, ScriptableContext } from 'chart.js';
 import Question from '@/components/question';
-import DateFilter, { Filter, filtertoString } from '@/components/dateFilter';
+import DateFilter, { Filter } from '@/components/dateFilter';
 import Error from "@/components/error";
 import Benchmark from './benchmark';
-
-interface Response<T> {
-    data: T;
-};
-
-interface Benchmark {
-    max: number;
-    min: number;
-    avg: number;
-    datapoints: Array<Point>;
-}
-
-interface State<T> {
-    loading: boolean;
-    error?: string;
-    data?: T;
-}
+import useBenchmarks from '@/hooks';
 
 export default function Analytics() {
     const [benchmarkPage, setBenchmarkPage] = useState(false);
     const [filter, setFilter] = useState<Filter>(Filter.Day);
     const [display, setDisplay] = useState<undefined | Display>(undefined);
-    const [state, setState] = useState<State<Benchmark>>({
-        loading: true,
-        error: undefined,
-        data: undefined
-    });
-    const { loading, error, data: benchmark } = state;
-    const benchmarkDataset = useMemo<ChartDataset<"line">>(() => {
+    const { loading, error, data: benchmark } = useBenchmarks(filter);
+    const branchDatasets = useMemo<Array<ChartDataset<"line">>>(() => {
+        if (benchmark) {
+            const { branches } = benchmark;
+            const datasets: Array<ChartDataset<"line">> = branches.map(({ dataPoints: data, name }) => ({
+                data,
+                pointRadius: 0,
+                borderWidth: 1,
+                tension: 0.25,
+                borderColor: "rgb(56, 189, 248)",
+                label: "Cold start",
+                type: "line",
+                fill: "start",
+                backgroundColor: (context: ScriptableContext<"line">) => {
+                    const ctx = context.chart.ctx;
+                    const gradient = ctx.createLinearGradient(0, 0, 0, 200);
+                    gradient.addColorStop(0, "rgba(56, 189, 248, 0.02)");
+                    gradient.addColorStop(1, "rgba(56, 189, 248, 0)");
+                    return gradient;
+                }
+            }));
+
+            return datasets;
+        }
+        return [];
+    }, [benchmark]);
+    const summaryDataset = useMemo<ChartDataset<"line">>(() => {
         return {
-            data: benchmark ? benchmark.datapoints : [],
+            data: benchmark ? benchmark.summary.dataPoints : [],
             pointRadius: 0,
             borderWidth: 1,
             tension: 0.25,
@@ -45,24 +49,22 @@ export default function Analytics() {
             label: "Cold start",
             type: "line",
             fill: "start",
+            backgroundColor: (context: ScriptableContext<"line">) => {
+                const ctx = context.chart.ctx;
+                const gradient = ctx.createLinearGradient(0, 0, 0, 200);
+                gradient.addColorStop(0, "rgba(56, 189, 248, 0.4)");
+                gradient.addColorStop(1, "rgba(56, 189, 248, 0)");
+                return gradient;
+            }
         };
     }, [benchmark]);
-    const datasets: Array<ChartDataset<"line">> = benchmark ? [benchmarkDataset] : [benchmarkDataset];
-
-    const statIdToDisplay = (str?: string) => {
-        switch (str) {
-            case "avgStat":
-                return Display.Average;
-            case "maxStat":
-                return Display.Maximum;
-            case "minStat":
-                return Display.Minimum;
-
-            default:
-                break;
+    const { avg, max, min } = useMemo(() => {
+        return {
+            avg: benchmark ? (Number(benchmark.summary.sum) / benchmark.summary.dataPoints.length) : 0,
+            max: benchmark?.summary.max,
+            min: benchmark?.summary.min
         }
-    };
-
+    }, [benchmark]);
     const onFilterChange = useCallback((newFilter: Filter) => setFilter(newFilter), []);
 
     const onClick = useCallback<MouseEventHandler<HTMLDivElement>>((e) => {
@@ -78,71 +80,6 @@ export default function Analytics() {
     const onBenchmarkClick = useCallback(() => {
         setBenchmarkPage(!benchmarkPage);
     }, [benchmarkPage]);
-
-    useEffect(() => {
-        const asyncOp = async () => {
-            try {
-                setBenchmarkPage(false);
-                const res = await fetch(`/api?query=${filtertoString(filter)}`);
-
-                const { data }: Response<{
-                    dataPoints: Array<Point>
-                }> = await res.json();
-                const { dataPoints } = data;
-
-                const sum = dataPoints.reduce((acc, op) => acc + op.y, 0);
-                let min = Number.MAX_SAFE_INTEGER;
-                let max = Number.MIN_SAFE_INTEGER;
-                dataPoints.forEach(({ x, y }) => {
-                    if (min > y) {
-                        min = y;
-                    }
-                    if (max < y) {
-                        max = y;
-                    }
-                })
-                const avg = sum / dataPoints.length;
-                setState({
-                    loading: false,
-                    error: undefined,
-                    data: {
-                        datapoints: (data as any).dataPoints,
-                        avg,
-                        max,
-                        min,
-                    },
-                });
-            } catch (err) {
-                console.error(err);
-                if (typeof err === "string") {
-                    setState({
-                        loading: false,
-                        error: err,
-                        data: undefined
-                    });
-                } else {
-                    setState({
-                        loading: false,
-                        error: JSON.stringify(err),
-                        data: undefined
-                    });
-                }
-            }
-        }
-        asyncOp();
-    }, [filter]);
-
-    datasets[0].backgroundColor = (context: ScriptableContext<"line">) => {
-        const ctx = context.chart.ctx;
-        const gradient = ctx.createLinearGradient(0, 0, 0, 200);
-        gradient.addColorStop(0, "rgba(56, 189, 248, 0.4)");
-        gradient.addColorStop(1, "rgba(56, 189, 248, 0)");
-        return gradient;
-    };
-
-    const chartData: ChartData<"line"> = {
-        datasets
-    };
 
     return (
         <>
@@ -170,20 +107,54 @@ export default function Analytics() {
                     </div>
                     <div className='h-72'>
                         <Chart
-                            avg={benchmark?.avg}
-                            max={benchmark?.max}
-                            min={benchmark?.min}
-                            chartData={chartData}
+                            avg={avg}
+                            max={max}
+                            min={min}
+                            chartData={{ datasets: [summaryDataset] }}
                             display={display}
                         />
                     </div>
                 </div>
                 <div className="flex justify-between pt-10">
-                    <Stat selected={display === Display.Average} stat={benchmark ? `${benchmark.avg.toFixed(0)}ms` : "-"} title="Average" id="avgStat" onClick={onClick} />
-                    <Stat selected={display === Display.Maximum} stat={benchmark ? `${benchmark.max.toFixed(0)}ms` : "-"} title="Maximum" id="maxStat" onClick={onClick} />
-                    <Stat selected={display === Display.Minimum} stat={benchmark ? `${benchmark.min.toFixed(0)}ms` : "-"} title="Minimum" id="minStat" onClick={onClick} />
+                    <Stat selected={display === Display.Average} stat={formatFloatToStatString(avg)} title="Average" id="avgStat" onClick={onClick} />
+                    <Stat selected={display === Display.Maximum} stat={formatFloatToStatString(max)} title="Maximum" id="maxStat" onClick={onClick} />
+                    <Stat selected={display === Display.Minimum} stat={formatFloatToStatString(min)} title="Minimum" id="minStat" onClick={onClick} />
                 </div>
-            </div>
+                <div>
+                    <p className='text-gray-100 text-center mt-10 font-light text-3xl'>Branches</p>
+                    <div className='grid grid-cols-2 gap-6 pt-10'>
+                        {
+                            benchmark && benchmark.branches.map(({
+                                dataPoints,
+                                description,
+                                name,
+                                max,
+                                min,
+                                sum
+                            }, i) => (
+                                <div key={name} className='overflow-hidden text-center text-gray-500 border border-opacity-25 p-4 rounded-sm border-slate-600'>
+                                    <p>{name}</p>
+                                    <div>
+                                        <Chart
+                                            avg={Number(sum) / dataPoints.length}
+                                            max={max}
+                                            min={min}
+                                            chartData={{ datasets: [branchDatasets[i]] }}
+                                            display={display}
+                                            minimalistic={true}
+                                        />
+                                    </div>
+                                    <div className='grid grid-cols-3'>
+                                        <div className='text-sm text-gray-400'><p className='text-xs pt-2 text-gray-600'>AVG</p>{formatFloatToStatString(avg)}</div>
+                                        <div className='text-sm text-gray-400'><p className='text-xs pt-2 text-gray-600'>MAX</p>{formatFloatToStatString(max)}</div>
+                                        <div className='text-sm text-gray-400'><p className='text-xs pt-2 text-gray-600'>MIN</p>{formatFloatToStatString(min)}</div>
+                                    </div>
+                                </div>
+                            ))
+                        }
+                    </div>
+                </div>
+            </div >
             <div className="text-center m-auto mt-10 w-fit">
                 <button
                     type="button"
@@ -197,7 +168,7 @@ export default function Analytics() {
                 </button>
             </div>
             <div className='mt-14'>
-                {benchmarkPage && benchmark && <Benchmark duration={benchmark.avg} altDuration={benchmark.max} />}
+                {benchmarkPage && max && <Benchmark duration={avg} altDuration={max} />}
             </div>
         </>
     );

@@ -1,7 +1,7 @@
 {
     "branches": [
         {
-            "name": "ten",
+            "name": "Ten",
             "description": "Contains around 10MB of data installed.",
             "setupQueries": [
                 "CREATE TABLE IF NOT EXISTS series (serie_num INT);",
@@ -11,7 +11,7 @@
             "benchmarkQuery": "SELECT * FROM series WHERE serie_num = 1000000;"
         },
         {
-            "name": "extensions",
+            "name": "Extensions",
             "description": "Contains around 60 extensions installed.",
             "setupQueries": [
                 "CREATE EXTENSION fuzzystrmatch;",

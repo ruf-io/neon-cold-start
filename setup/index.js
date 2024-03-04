@@ -1,8 +1,10 @@
 const { Pool } = require("pg");
 const { createApiClient } = require("@neondatabase/api-client");
 const { parse } = require("pg-connection-string");
+const { readFileSync } = require("fs");
+
 require('dotenv').config();
-const config = readFileSync(__dirname + "/config.json", "utf-8");
+const configFile = JSON.parse(readFileSync(__dirname + "/config.json", "utf-8"));
 
 /**
  * Benchmark database
@@ -12,7 +14,6 @@ const PROJECT_REGION = process.env["PROJECT_REGION"] || "aws-us-east-1";
 const PROJECT_NAME = process.env["PROJECT_NAME"] || "Benchmark";
 const DATABASE_NAME = process.env["DATABASE_NAME"] || "neondb";
 const ROLE_NAME = process.env["ROLE_NAME"] || "BenchmarkRole";
-const BENCHMARK_BRANCH_NAME = process.env["BENCHMARK_BRANCH_NAME"] || "Benchmarks";
 const MAIN_BRANCH_NAME = process.env["BENCHMARK_BRANCH_NAME"] || "main";
 
 /**
@@ -65,23 +66,30 @@ const fetchProjects = async (apiClient) => {
  * - `password`: The role password for the main and benchmark role.
  */
 const getConfig = async (apiClient, projectId) => {
-    console.log("Retrieving benchmark config.");
+    console.log("Reading benchmark config.");
+    const configMap = {};
+    configFile.branches.forEach(branch => { configMap[branch.name] = branch; });
 
     // Get branches IDs.
+    console.log("Retrieving branches data.");
     const { data: listBranchesData } = await apiClient.listProjectBranches(projectId);
     const { branches } = listBranchesData;
     const branchesConfig = {};
-    const promises = [];
 
     for ({ id: branchId, name: branchName } of branches) {
-        branchesConfig[branchName] = {};
         const { data: rolePasswordData } = await apiClient.getProjectBranchRolePassword(projectId, branchId, ROLE_NAME);
         const { password } = rolePasswordData;
-        branchesConfig[branchName]["password"] = password;
 
         const { data: endpointData } = await apiClient.listProjectBranchEndpoints(projectId, branchId);
         const { endpoints: branchEndpoints } = endpointData;
-        branchesConfig[branchName]["endpoint"] = branchEndpoints[0];
+        const endpoint = branchEndpoints[0];
+
+        branchesConfig[branchName] = {
+            password,
+            endpoint,
+            benchmarkQuery: configMap[branchName],
+            id: branchId
+        };
     }
 
     return branchesConfig;
@@ -136,8 +144,7 @@ const suspendProjectEndpoint = async (apiClient, projectId, endpointId) => {
             await apiClient.suspendProjectEndpoint(projectId, endpointId);
             suspended = true;
         } catch (err) {
-            console.error("Error suspending project.")
-            console.error(JSON.stringify(err));
+            console.error("Error suspending project. Trying again in 500ms.")
             // Sleep.
             await new Promise((res) => { setTimeout(res, 500) });
         }
@@ -159,7 +166,6 @@ const benchmarkProject = async ({ id: projectId }, config, apiClient) => {
     console.log("Starting benchmark.");
     await waitProjectOpFinished(apiClient, projectId);
     const mainConfig = config[MAIN_BRANCH_NAME];
-    console.log(mainConfig)
     const mainPool = new Pool({
         host: mainConfig.endpoint.host,
         password: mainConfig.password,
@@ -168,19 +174,19 @@ const benchmarkProject = async ({ id: projectId }, config, apiClient) => {
         ssl: true,
     });
     const insertPromises = [];
+    // This time is used to identify and group by the benchmarks.
+    const initialTime = new Date();
 
     for (const branchName of Object.keys(config)) {
         const {
             endpoint: benchmarkEndpoint,
-            password: benchmarkRolePassword
+            password: benchmarkRolePassword,
+            benchmarkQuery,
+            id: branchId
         } = config[branchName];
 
         // Main branch doesn't need a benchmark.
         if (branchName === "main") {
-            mainConfig = {
-                benchmarkEndpoint,
-                benchmarkRolePassword,
-            };
             continue;
         } else {
             console.log("Benchmarking branch: ", branchName);
@@ -201,7 +207,8 @@ const benchmarkProject = async ({ id: projectId }, config, apiClient) => {
                 database: DATABASE_NAME,
                 ssl: true,
             });
-            await benchmarkPool.query("SELECT * FROM series WHERE serie_num = 1000000;");
+
+            await benchmarkPool.query(benchmarkQuery);
             const after = new Date();
             const benchmarkValue = after.getTime() - before.getTime();
             benchmarkPool.end();
@@ -209,19 +216,19 @@ const benchmarkProject = async ({ id: projectId }, config, apiClient) => {
             // Store benchmark
             insertPromises.push(
                 mainPool.query(
-                    "INSERT INTO benchmarks VALUES ($1, $2, now())",
-                    [projectId, benchmarkValue]
+                    "INSERT INTO benchmarks VALUES ($1, $2, $3, now())",
+                    [branchId, initialTime, benchmarkValue]
                 )
             );
+
+            // Save computing time
+            await waitProjectOpFinished(apiClient, projectId);
+            await suspendProjectEndpoint(apiClient, projectId, benchmarkEndpoint.id);
         }
     }
 
     await Promise.all(insertPromises);
     mainPool.end();
-
-    // Save computing time
-    await waitProjectOpFinished(apiClient, projectId);
-    await suspendProjectEndpoint(apiClient, projectId, benchmarkEndpoint.id);
 }
 
 exports.handler = async () => {

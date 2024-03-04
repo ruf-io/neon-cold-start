@@ -71,7 +71,7 @@ const initProject = async (apiClient, branches) => {
     const config = parse(mainConnectionUri);
     const mainPool = new Pool(config);
     await mainPool.query("CREATE TABLE IF NOT EXISTS branches (id TEXT, name TEXT, description TEXT);");
-    await mainPool.query("CREATE TABLE IF NOT EXISTS benchmarks (id TEXT, duration INT, ts TIMESTAMP);");
+    await mainPool.query("CREATE TABLE IF NOT EXISTS benchmarks (id TEXT, initial_timestamp TIMESTAMP, duration INT, ts TIMESTAMP);");
 
     for (const branch of branches) {
         await waitProjectOpFinished(apiClient, projectId);
