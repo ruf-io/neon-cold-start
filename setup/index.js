@@ -137,10 +137,10 @@ const waitProjectOpFinished = async (apiClient, projectId) => {
  * @returns {Promise<void>} A promise that resolves once the endpoint has been successfully suspended.
  */
 const suspendProjectEndpoint = async (apiClient, projectId, endpointId) => {
+    console.log("Endpoint ID:", endpointId);
     let suspended = false;
     while (!suspended) {
         try {
-            console.log("Project ID:", projectId);
             await apiClient.suspendProjectEndpoint(projectId, endpointId);
             suspended = true;
         } catch (err) {
