@@ -1,6 +1,5 @@
 const { Pool } = require("pg");
 const { createApiClient } = require("@neondatabase/api-client");
-const { parse } = require("pg-connection-string");
 const { readFileSync } = require("fs");
 
 require('dotenv').config();
