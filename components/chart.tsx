@@ -12,6 +12,7 @@ interface Props {
     avg?: number;
     max?: number;
     min?: number;
+    minimalistic?: boolean;
     chartData: ChartData<"line">;
     display?: Display;
 }
@@ -22,8 +23,22 @@ export enum Display {
     Minimum,
 }
 
+export const statIdToDisplay = (str?: string) => {
+    switch (str) {
+        case "avgStat":
+            return Display.Average;
+        case "maxStat":
+            return Display.Maximum;
+        case "minStat":
+            return Display.Minimum;
+
+        default:
+            break;
+    }
+};
+
 const Chart = (props: Props) => {
-    const { avg, max, min, chartData, display } = props;
+    const { avg, max, min, chartData, display, minimalistic } = props;
     const ref = useRef<ChartJS<"line">>(null);
 
     useEffect(() => {
@@ -90,7 +105,7 @@ const Chart = (props: Props) => {
     }, [display, max, min]);
 
     return (
-        // Casting to avoid type issues with `ChartJSOrUndefined`.
+        // Casting ref to avoid type issues over `ChartJSOrUndefined`.
         <Line ref={ref as any} data={chartData} options={{
             maintainAspectRatio: false,
             responsive: true,
@@ -102,7 +117,7 @@ const Chart = (props: Props) => {
                             type: 'line',
                             yMin: avg,
                             yMax: avg,
-                            borderColor: '#f59e0b',
+                            borderColor: '#f1f5f977',
                             borderWidth: 1.2,
                             display: display === Display.Average,
                             borderDash: [3, 3],
@@ -117,7 +132,7 @@ const Chart = (props: Props) => {
             },
             scales: {
                 y: {
-                    title: { text: "Duration (ms)", display: true },
+                    title: { text: "Duration (ms)", display: !minimalistic },
                     beginAtZero: true,
                     grid: {
                         display: false,
@@ -125,17 +140,19 @@ const Chart = (props: Props) => {
                     },
                     ticks: {
                         maxTicksLimit: 3,
+                        display: !minimalistic
                     },
                 },
                 x: {
-                    title: { text: "Time", display: true },
+                    title: { text: "Time", display: !minimalistic },
                     type: "timeseries",
                     grid: {
                         display: false,
                         color: "#FFFFFF0D"
                     },
                     ticks: {
-                        maxTicksLimit: 5
+                        maxTicksLimit: 5,
+                        display: !minimalistic
                     }
                 }
             },

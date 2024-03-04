@@ -16,6 +16,10 @@ interface Props {
     id?: string;
 }
 
+export const formatFloatToStatString = (float?: number) => {
+    return float ? `${float.toFixed(0)}ms` : "-";
+}
+
 const Stat = (props: Props) => {
     const { id, selected, stat, title, onHover, onClick } = props;
 

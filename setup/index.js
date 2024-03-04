@@ -1,7 +1,9 @@
 const { Pool } = require("pg");
 const { createApiClient } = require("@neondatabase/api-client");
-const { parse } = require("pg-connection-string");
+const { readFileSync } = require("fs");
+
 require('dotenv').config();
+const configFile = JSON.parse(readFileSync(__dirname + "/config.json", "utf-8"));
 
 /**
  * Benchmark database
@@ -11,7 +13,6 @@ const PROJECT_REGION = process.env["PROJECT_REGION"] || "aws-us-east-1";
 const PROJECT_NAME = process.env["PROJECT_NAME"] || "Benchmark";
 const DATABASE_NAME = process.env["DATABASE_NAME"] || "neondb";
 const ROLE_NAME = process.env["ROLE_NAME"] || "BenchmarkRole";
-const BENCHMARK_BRANCH_NAME = process.env["BENCHMARK_BRANCH_NAME"] || "Benchmarks";
 const MAIN_BRANCH_NAME = process.env["BENCHMARK_BRANCH_NAME"] || "main";
 
 /**
@@ -55,71 +56,6 @@ const fetchProjects = async (apiClient) => {
 }
 
 /**
- * Initializes the project and its branches required for benchmarking. This function is responsible
- * for setting up any necessary infrastructure, configurations, or data needed to benchmark the project.
- * 
- * IMPORTANT: This function will fail if you already have a project in a free account.
- * Ensure you have no projects set up before initializing a new one.
- * Otherwise, upgrading to a paid account will resolve the issue. 
- * 
- * @param {Object} apiClient The API client used to interact with Neon.
- * @returns {Promise<void>} A promise that resolves once the project and its branches are ready.
- */
-const initProject = async (apiClient) => {
-    console.log("Initializing a new benchmark project on :", PROJECT_REGION);
-
-    // Create the project
-    const { data: createProjectData } = await apiClient.createProject({
-        project: {
-            name: PROJECT_NAME,
-            region_id: PROJECT_REGION,
-            branch: {
-                role_name: ROLE_NAME,
-                database_name: DATABASE_NAME
-            },
-        }
-    });
-    const {
-        connection_uris: mainConnectionUris,
-        project
-    } = createProjectData;
-    const { id: projectId } = project;
-    const { connection_uri: mainConnectionUri } = mainConnectionUris.pop();
-
-    // Create the table to store the benchmarks.
-    // Using the connect uri in the Pool fails, but using the parse fixes the issue.
-    const config = parse(mainConnectionUri);
-    const mainPool = new Pool(config);
-    await mainPool.query("CREATE TABLE IF NOT EXISTS benchmarks (id TEXT, duration INT, ts TIMESTAMP);");
-
-    // Create the benchmark branch to do the benchmarks.
-    const { data: benchmarkBranchData } = await apiClient.createProjectBranch(projectId, {
-        branch: {
-            name: BENCHMARK_BRANCH_NAME,
-            role_name: ROLE_NAME,
-            database_name: DATABASE_NAME,
-        },
-        endpoints: [{
-            type: "read_write"
-        }]
-    });
-    const { connection_uris: benchmarkConnectionUris } = benchmarkBranchData;
-    const { connection_uri: benchmarkConnectionUri } = benchmarkConnectionUris.pop();
-
-    const benchmarkConfig = parse(benchmarkConnectionUri);
-    // Create the table storing a series of numbers.
-    // 
-    // The benchmark will measure how much does it take to query this table.
-    const benchmarkPool = new Pool(benchmarkConfig);
-    await benchmarkPool.query("CREATE TABLE IF NOT EXISTS series (serie_num INT);");
-    await benchmarkPool.query("INSERT INTO series VALUES (generate_series(0, 100000));");
-    await benchmarkPool.query("CREATE INDEX IF NOT EXISTS series_idx ON series (serie_num);");
-    benchmarkPool.end();
-
-    return project;
-}
-
-/**
  * Retrieves the configuration necessary to run benchmarks, including endpoints and role passwords for both the main and benchmark branches.
  * 
  * @param {Object} apiClient The API client used to communicate with the backend.
@@ -129,48 +65,33 @@ const initProject = async (apiClient) => {
  * - `password`: The role password for the main and benchmark role.
  */
 const getConfig = async (apiClient, projectId) => {
-    console.log("Retrieving benchmark config.");
+    console.log("Reading benchmark config.");
+    const configMap = {};
+    configFile.branches.forEach(branch => { configMap[branch.name] = branch; });
 
     // Get branches IDs.
-    const { branches } = (await apiClient.listProjectBranches(projectId)).data;
-    const mainBranch = branches.find(x => x.name === MAIN_BRANCH_NAME);
-    const benchmarkBranch = branches.find(x => x.name === BENCHMARK_BRANCH_NAME);
+    console.log("Retrieving branches data.");
+    const { data: listBranchesData } = await apiClient.listProjectBranches(projectId);
+    const { branches } = listBranchesData;
+    const branchesConfig = {};
 
-    if (!mainBranch) {
-        throw new Error("Main branch is missing.");
-    } else if (!benchmarkBranch) {
-        throw new Error("Benchmark branch is missing.");
+    for ({ id: branchId, name: branchName } of branches) {
+        const { data: rolePasswordData } = await apiClient.getProjectBranchRolePassword(projectId, branchId, ROLE_NAME);
+        const { password } = rolePasswordData;
+
+        const { data: endpointData } = await apiClient.listProjectBranchEndpoints(projectId, branchId);
+        const { endpoints: branchEndpoints } = endpointData;
+        const endpoint = branchEndpoints[0];
+
+        branchesConfig[branchName] = {
+            password,
+            endpoint,
+            benchmarkQuery: configMap[branchName],
+            id: branchId
+        };
     }
 
-    // Get endpoints and passwords.
-    const mainRolePasswordPromise = apiClient.getProjectBranchRolePassword(projectId, mainBranch.id, ROLE_NAME);
-    const benchmarkRolePasswordPromise = apiClient.getProjectBranchRolePassword(projectId, benchmarkBranch.id, ROLE_NAME);
-    const mainEndpointPromise = apiClient.listProjectBranchEndpoints(projectId, mainBranch.id);
-    const benchmarkEndpointPromise = apiClient.listProjectBranchEndpoints(projectId, benchmarkBranch.id);
-    const [
-        { data: mainRolePassword },
-        { data: benchmarkRolePassword },
-        { data: mainEndpointsData },
-        { data: benchmarkEndpointsData },
-    ] = await Promise.all([
-        mainRolePasswordPromise,
-        benchmarkRolePasswordPromise,
-        mainEndpointPromise,
-        benchmarkEndpointPromise
-    ]);
-
-    const { endpoints: mainEndpoints } = mainEndpointsData;
-    const { endpoints: benchmarkEndpoints } = benchmarkEndpointsData;
-    return {
-        endpoints: {
-            main: mainEndpoints[0],
-            benchmark: benchmarkEndpoints[0]
-        },
-        passwords: {
-            main: mainRolePassword.password,
-            benchmark: benchmarkRolePassword.password
-        }
-    };
+    return branchesConfig;
 }
 
 /**
@@ -215,15 +136,14 @@ const waitProjectOpFinished = async (apiClient, projectId) => {
  * @returns {Promise<void>} A promise that resolves once the endpoint has been successfully suspended.
  */
 const suspendProjectEndpoint = async (apiClient, projectId, endpointId) => {
+    console.log("Endpoint ID:", endpointId);
     let suspended = false;
     while (!suspended) {
         try {
-            console.log("Project ID:", projectId);
             await apiClient.suspendProjectEndpoint(projectId, endpointId);
             suspended = true;
         } catch (err) {
-            console.error("Error suspending project.")
-            console.error(JSON.stringify(err));
+            console.error("Error suspending project. Trying again in 500ms.")
             // Sleep.
             await new Promise((res) => { setTimeout(res, 500) });
         }
@@ -241,55 +161,73 @@ const suspendProjectEndpoint = async (apiClient, projectId, endpointId) => {
  * @returns {Promise<void>} A promise that resolves when the benchmarking process is complete,
  * indicating that no value is returned but the side effects (benchmarking the project) have been completed.
  */
-const benchmarkProject = async ({ id: projectId }, {
-    endpoints: {
-        benchmark: benchmarkEndpoint,
-        main: mainEndpoint
-    },
-    passwords: {
-        benchmark: benchmarkRolePassword,
-        main: mainRolePassword
-    }
-}, apiClient) => {
+const benchmarkProject = async ({ id: projectId }, config, apiClient) => {
     console.log("Starting benchmark.");
-
     await waitProjectOpFinished(apiClient, projectId);
+    const mainConfig = config[MAIN_BRANCH_NAME];
+    const mainPool = new Pool({
+        host: mainConfig.endpoint.host,
+        password: mainConfig.password,
+        user: ROLE_NAME,
+        database: DATABASE_NAME,
+        ssl: true,
+    });
+    const insertPromises = [];
+    // This time is used to identify and group by the benchmarks.
+    const initialTime = new Date();
 
-    // Ensure the endpoint is idle (suspended.)
-    if (benchmarkEndpoint.current_state !== "idle") {
-        console.log("Benchmark endpoint was not idle. Suspending endpoint.");
-        await suspendProjectEndpoint(apiClient, projectId, benchmarkEndpoint.id);
-        await waitEndpointIdle(apiClient, projectId, benchmarkEndpoint.id);
+    for (const branchName of Object.keys(config)) {
+        const {
+            endpoint: benchmarkEndpoint,
+            password: benchmarkRolePassword,
+            benchmarkQuery,
+            id: branchId
+        } = config[branchName];
+
+        // Main branch doesn't need a benchmark.
+        if (branchName === "main") {
+            continue;
+        } else {
+            console.log("Benchmarking branch: ", branchName);
+
+            // Ensure the endpoint is idle (suspended.)
+            if (benchmarkEndpoint.current_state !== "idle") {
+                console.log("Benchmark endpoint was not idle. Suspending endpoint.");
+                await suspendProjectEndpoint(apiClient, projectId, benchmarkEndpoint.id);
+                await waitEndpointIdle(apiClient, projectId, benchmarkEndpoint.id);
+            }
+
+            // Run benchmark
+            const before = new Date();
+            const benchmarkPool = new Pool({
+                host: benchmarkEndpoint.host,
+                password: benchmarkRolePassword,
+                user: ROLE_NAME,
+                database: DATABASE_NAME,
+                ssl: true,
+            });
+
+            await benchmarkPool.query(benchmarkQuery);
+            const after = new Date();
+            const benchmarkValue = after.getTime() - before.getTime();
+            benchmarkPool.end();
+
+            // Store benchmark
+            insertPromises.push(
+                mainPool.query(
+                    "INSERT INTO benchmarks VALUES ($1, $2, $3, now())",
+                    [branchId, initialTime, benchmarkValue]
+                )
+            );
+
+            // Save computing time
+            await waitProjectOpFinished(apiClient, projectId);
+            await suspendProjectEndpoint(apiClient, projectId, benchmarkEndpoint.id);
+        }
     }
 
-    // Run benchmark
-    const before = new Date();
-    const benchmarkPool = new Pool({
-        host: benchmarkEndpoint.host,
-        password: benchmarkRolePassword,
-        user: ROLE_NAME,
-        database: DATABASE_NAME,
-        ssl: true,
-    });
-    await benchmarkPool.query("SELECT * FROM series WHERE serie_num = 1000000;");
-    const after = new Date();
-    const benchmarkValue = after.getTime() - before.getTime();
-    benchmarkPool.end();
-
-    // Store benchmark
-    const mainPool = new Pool({
-        host: mainEndpoint.host,
-        password: mainRolePassword,
-        user: ROLE_NAME,
-        database: DATABASE_NAME,
-        ssl: true,
-    });
-    await mainPool.query("INSERT INTO benchmarks VALUES ($1, $2, now())", [projectId, benchmarkValue])
+    await Promise.all(insertPromises);
     mainPool.end();
-
-    // Save computing time
-    await waitProjectOpFinished(apiClient, projectId);
-    await suspendProjectEndpoint(apiClient, projectId, benchmarkEndpoint.id);
 }
 
 exports.handler = async () => {
@@ -306,8 +244,7 @@ exports.handler = async () => {
         let project = projects.find(x => x.name === PROJECT_NAME);
 
         if (!project) {
-            console.log("Benchmark project not found.")
-            project = await initProject(apiClient);
+            throw new Error("Benchmark project not found.");
         }
 
         const config = await getConfig(apiClient, project.id);

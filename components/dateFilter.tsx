@@ -45,8 +45,6 @@ const DateFilter = (props: Props) => {
         }
     }, []);
 
-    console.log("Filter: ", filter);
-
     return (
         <div className='ml-auto text-gray-400'>
             <button onClick={onClick} id="dayFilterButton" className={`${filter === Filter.Day ? "text-white" : ""}`}>D</button> / <button onClick={onClick} id="weekFilterButton" className={`${filter === Filter.Week ? "text-white" : ""}`}>W</button> / <button onClick={onClick} id="monthFilterButton" className={`${filter === Filter.Month ? "text-white" : ""}`}>M</button>

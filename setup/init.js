@@ -1,6 +1,7 @@
-const { Pool } = require("pg");
+const { Pool, Client } = require("pg");
 const { createApiClient } = require("@neondatabase/api-client");
 const { parse } = require("pg-connection-string");
+const { readFileSync } = require("fs");
 require('dotenv').config();
 
 /**
@@ -11,7 +12,23 @@ const PROJECT_REGION = process.env["PROJECT_REGION"] || "aws-us-east-1";
 const PROJECT_NAME = process.env["PROJECT_NAME"] || "Benchmark";
 const DATABASE_NAME = process.env["DATABASE_NAME"] || "neondb";
 const ROLE_NAME = process.env["ROLE_NAME"] || "BenchmarkRole";
-const BENCHMARK_BRANCH_NAME = process.env["BENCHMARK_BRANCH_NAME"] || "Benchmarks";
+
+/**
+ * Waits until the latest project operation is finish.
+ * @param {*} apiClient 
+ * @param {*} projectId 
+ */
+const waitProjectOpFinished = async (apiClient, projectId) => {
+    let finished = false;
+
+    while (!finished) {
+        const projectOpsStatus = (await apiClient.listProjectOperations({ projectId })).data.operations[0].status;
+        finished = projectOpsStatus === "finished";
+
+        // Sleep.
+        await new Promise((res) => { setTimeout(res, 500) });
+    }
+}
 
 /**
  * Initializes the project and its branches required for benchmarking. This function is responsible
@@ -22,9 +39,10 @@ const BENCHMARK_BRANCH_NAME = process.env["BENCHMARK_BRANCH_NAME"] || "Benchmark
  * Otherwise, upgrading to a paid account will resolve the issue. 
  * 
  * @param {Object} apiClient The API client used to interact with Neon.
+ * @param {Object} branches Branches configuration to setup in Neon.
  * @returns {Promise<void>} A promise that resolves once the project and its branches are ready.
  */
-const initProject = async (apiClient) => {
+const initProject = async (apiClient, branches) => {
     if (!API_KEY) {
         throw new Error("The API Key is missing. Make sure to declare it in your environment variables.");
     }
@@ -52,40 +70,84 @@ const initProject = async (apiClient) => {
     // Using the connect uri in the Pool fails, but using the parse fixes the issue.
     const config = parse(mainConnectionUri);
     const mainPool = new Pool(config);
-    await mainPool.query("CREATE TABLE IF NOT EXISTS benchmarks (id TEXT, duration INT, ts TIMESTAMP);");
+    await mainPool.query("CREATE TABLE IF NOT EXISTS branches (id TEXT, name TEXT, description TEXT);");
+    await mainPool.query("CREATE TABLE IF NOT EXISTS benchmarks (id TEXT, initial_timestamp TIMESTAMP, duration INT, ts TIMESTAMP);");
 
-    // Create the benchmark branch to do the benchmarks.
-    const { data: benchmarkBranchData } = await apiClient.createProjectBranch(projectId, {
-        branch: {
-            name: BENCHMARK_BRANCH_NAME,
-            role_name: ROLE_NAME,
-            database_name: DATABASE_NAME,
-        },
-        endpoints: [{
-            type: "read_write"
-        }]
-    });
-    const { connection_uris: benchmarkConnectionUris } = benchmarkBranchData;
-    const { connection_uri: benchmarkConnectionUri } = benchmarkConnectionUris.pop();
+    for (const branch of branches) {
+        await waitProjectOpFinished(apiClient, projectId);
 
-    const benchmarkConfig = parse(benchmarkConnectionUri);
-    // Create the table storing a series of numbers.
-    // 
-    // The benchmark will measure how much does it take to query this table.
-    const benchmarkPool = new Pool(benchmarkConfig);
-    await benchmarkPool.query("CREATE TABLE IF NOT EXISTS series (serie_num INT);");
-    await benchmarkPool.query("INSERT INTO series VALUES (generate_series(0, 100000));");
-    await benchmarkPool.query("CREATE INDEX IF NOT EXISTS series_idx ON series (serie_num);");
-    benchmarkPool.end();
+        const {
+            name,
+            description,
+            setupQueries,
+            benchmarkQuery
+        } = branch;
+        console.log("Creating branch: ", name);
+
+        if (!name || !description || !setupQueries || !benchmarkQuery) {
+            throw new Error("Configuration file has missing fields.");
+        }
+
+        const { data: benchmarkBranchData } = await apiClient.createProjectBranch(projectId, {
+            branch: {
+                name,
+                role_name: ROLE_NAME,
+                database_name: DATABASE_NAME,
+            },
+            endpoints: [{
+                type: "read_write"
+            }]
+        });
+        const {
+            branch: benchmarkBranch,
+            connection_uris: benchmarkConnectionUris
+        } = benchmarkBranchData;
+        const { connection_uri: benchmarkConnectionUri } = benchmarkConnectionUris.pop();
+
+        const benchmarkConfig = parse(benchmarkConnectionUri);
+
+        // Create the table storing a series of numbers.
+        // 
+        // The benchmark will measure how much does it take to query this table.
+        const branchPool = new Pool(benchmarkConfig);
+        const branchClient = await branchPool.connect()
+        for (setupQuery of setupQueries) {
+            try {
+                await branchClient.query(setupQuery);
+            } catch (err) {
+                console.error(err);
+            }
+        }
+        branchClient.end();
+        branchPool.end();
+
+        // Store the configuration in the main branch.
+        const { id } = benchmarkBranch;
+        await mainPool.query("INSERT INTO branches VALUES ($1, $2, $3)", [id, name, description]);
+    }
 
     console.log("\n**IMPORTANT**");
     console.log("Add the following variable to your `.env` file:");
     console.log(`CONNECTION_STRING=${mainConnectionUri.trim()}`);
 
+    mainPool.end();
+
     return project;
 }
 
+
+// Configuration
+if (!API_KEY) {
+    throw new Error("API key is missing.")
+}
 const apiClient = createApiClient({
     apiKey: API_KEY,
 });
-initProject(apiClient);
+
+const config = readFileSync(__dirname + "/config.json", "utf-8");
+const { branches } = JSON.parse(config);
+if (!branches) {
+    throw new Error("Configuration is missing.")
+}
+
+initProject(apiClient, branches);
