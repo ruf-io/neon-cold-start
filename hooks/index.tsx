@@ -109,7 +109,6 @@ const useBenchmarks = (filter: Filter) => {
                 });
 
                 const branches: Array<BranchBenchmark> = Object.keys(branchesRecord).map(x => branchesRecord[x]);
-
                 // Set the state with the fetched and processed data
                 setState({
                     loading: false,

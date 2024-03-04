@@ -34,7 +34,7 @@ export async function GET(req: NextRequest) {
     }
 
     const branches = await sql`SELECT id, name, description FROM branches;`;
-    const summaryRows = await sql`SELECT initial_timestamp, AVG(duration) FROM benchmarks GROUP BY initial_timestamp ORDER BY initial_timestamp DESC;`;
+    const summaryRows = await sql`SELECT initial_timestamp, AVG(duration) FROM benchmarks WHERE initial_timestamp > ${today.toISOString()} GROUP BY initial_timestamp ORDER BY initial_timestamp DESC;`;
     const rows = await sql`SELECT id, duration, ts FROM benchmarks WHERE ts > ${today.toISOString()} ORDER BY ts DESC;`;
     const dataPoints = rows.map(x => ({
         x: x.ts,
