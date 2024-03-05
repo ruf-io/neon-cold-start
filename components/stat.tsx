@@ -35,8 +35,8 @@ const Stat = (props: Props) => {
                 hover:border-gray-700 border  rounded-md p-4 w-56
             `}
         >
-            <p className="text-xs text-gray-400 font-light mb-10">{title}</p>
-            <p className="text-5xl mt-10 truncate">{stat}</p>
+            <p className="text-sm text-gray-600 font-light mb-5 text-center">{title}</p>
+            <p className="text-5xl mt-5 truncate">{stat}</p>
         </div>
     )
 }

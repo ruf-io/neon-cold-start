@@ -23,15 +23,15 @@ export default function Analytics() {
                 pointRadius: 0,
                 borderWidth: 1,
                 tension: 0.25,
-                borderColor: "rgb(56, 189, 248)",
+                borderColor: "rgb(110, 129, 138)",
                 label: "Cold start",
                 type: "line",
                 fill: "start",
                 backgroundColor: (context: ScriptableContext<"line">) => {
                     const ctx = context.chart.ctx;
                     const gradient = ctx.createLinearGradient(0, 0, 0, 200);
-                    gradient.addColorStop(0, "rgba(56, 189, 248, 0.02)");
-                    gradient.addColorStop(1, "rgba(56, 189, 248, 0)");
+                    gradient.addColorStop(0, "rgba(110, 129, 138, 0.02)");
+                    gradient.addColorStop(1, "rgba(110, 129, 138, 0)");
                     return gradient;
                 }
             }));
@@ -99,7 +99,7 @@ export default function Analytics() {
                 <div className={`${(loading || error) ? "invisible" : "visible"}`}>
                     <div className='flex w-full'>
                         <div className='mb-10 flex space-x-4 items-center'>
-                            <p className="text-xl text-gray-400 font-extralight">Cold Start Times</p>
+                            <p className="text-xl text-gray-400 font-extralight">Cold Start Times Summary</p>
                             <Question text='Cold-starts summary for all the benchmarks available.' />
                         </div>
                         <div className='ml-auto order-3'>
