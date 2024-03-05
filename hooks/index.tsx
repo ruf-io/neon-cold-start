@@ -20,6 +20,7 @@ export interface BranchBenchmark {
     max: number;
     min: number;
     sum: number;
+    avg: number;
     dataPoints: Array<Point>;
     description: string;
     name: string;
@@ -56,6 +57,7 @@ const initBenchmark = (
                 min: Number.MAX_SAFE_INTEGER,
                 max: Number.MIN_SAFE_INTEGER,
                 sum: 0,
+                avg: 0,
                 dataPoints: [],
                 description: branchDescription.description,
                 name: branchDescription.name
@@ -67,6 +69,7 @@ const initBenchmark = (
         min: Number.MAX_SAFE_INTEGER,
         max: Number.MIN_SAFE_INTEGER,
         sum: 0,
+        avg: 0,
         dataPoints: [],
         description: description || "",
         name: name || ""
@@ -91,12 +94,12 @@ const useBenchmarks = (filter: Filter) => {
                     summary: Array<Point>,
                     branches: Array<BranchDescription>
                 }> = await res.json();
-                const { dataPoints, summary, branches: branchDescriptions } = data;
+                const { dataPoints, summary: summaryDataPoints, branches: branchDescriptions } = data;
 
-                // Calculate sum, min, max, and avg
+                // Calculate sum, min, max.
                 const branchesRecord: Record<string, BranchBenchmark> = {};
                 const summaryBenchmark: BranchBenchmark = initBenchmark("", "Summary", "Contains a summary for all the branches.");
-                summary.forEach((dataPoint) => {
+                summaryDataPoints.forEach((dataPoint) => {
                     processBranchDatapoint(summaryBenchmark, dataPoint);
                 });
                 dataPoints.forEach(dataPoint => {
@@ -108,7 +111,12 @@ const useBenchmarks = (filter: Filter) => {
                     branchesRecord[id] = branch;
                 });
 
-                const branches: Array<BranchBenchmark> = Object.keys(branchesRecord).map(x => branchesRecord[x]);
+                const branches: Array<BranchBenchmark> = Object.keys(branchesRecord).map(x => ({
+                    ...branchesRecord[x],
+                    avg: branchesRecord[x].sum / branchesRecord[x].dataPoints.length
+                }));
+                summaryBenchmark.avg = summaryBenchmark.sum / summaryBenchmark.dataPoints.length;
+
                 // Set the state with the fetched and processed data
                 setState({
                     loading: false,

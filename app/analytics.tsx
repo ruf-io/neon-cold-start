@@ -8,6 +8,7 @@ import DateFilter, { Filter } from '@/components/dateFilter';
 import Error from "@/components/error";
 import Benchmark from './benchmark';
 import useBenchmarks from '@/hooks';
+import ChartStat from '@/components/chartStat';
 
 export default function Analytics() {
     const [benchmarkPage, setBenchmarkPage] = useState(false);
@@ -60,7 +61,7 @@ export default function Analytics() {
     }, [benchmark]);
     const { avg, max, min } = useMemo(() => {
         return {
-            avg: benchmark ? (Number(benchmark.summary.sum) / benchmark.summary.dataPoints.length) : 0,
+            avg: benchmark?.summary.avg,
             max: benchmark?.summary.max,
             min: benchmark?.summary.min
         }
@@ -99,7 +100,7 @@ export default function Analytics() {
                     <div className='flex w-full'>
                         <div className='mb-10 flex space-x-4 items-center'>
                             <p className="text-xl text-gray-400 font-extralight">Cold Start Times</p>
-                            <Question text='Benchmark' />
+                            <Question text='Cold-starts summary for all the benchmarks available.' />
                         </div>
                         <div className='ml-auto order-3'>
                             <DateFilter filter={filter} handleChange={onFilterChange} />
@@ -124,32 +125,8 @@ export default function Analytics() {
                     <p className='text-gray-100 text-center mt-10 font-light text-3xl'>Branches</p>
                     <div className='grid grid-cols-2 gap-6 pt-10'>
                         {
-                            benchmark && benchmark.branches.map(({
-                                dataPoints,
-                                description,
-                                name,
-                                max,
-                                min,
-                                sum
-                            }, i) => (
-                                <div key={name} className='overflow-hidden text-center text-gray-500 border border-opacity-25 p-4 rounded-sm border-slate-600'>
-                                    <p>{name}</p>
-                                    <div>
-                                        <Chart
-                                            avg={Number(sum) / dataPoints.length}
-                                            max={max}
-                                            min={min}
-                                            chartData={{ datasets: [branchDatasets[i]] }}
-                                            display={display}
-                                            minimalistic={true}
-                                        />
-                                    </div>
-                                    <div className='grid grid-cols-3'>
-                                        <div className='text-sm text-gray-400'><p className='text-xs pt-2 text-gray-600'>AVG</p>{formatFloatToStatString(avg)}</div>
-                                        <div className='text-sm text-gray-400'><p className='text-xs pt-2 text-gray-600'>MAX</p>{formatFloatToStatString(max)}</div>
-                                        <div className='text-sm text-gray-400'><p className='text-xs pt-2 text-gray-600'>MIN</p>{formatFloatToStatString(min)}</div>
-                                    </div>
-                                </div>
+                            benchmark && benchmark.branches.map((branchBenchmark, i) => (
+                                <ChartStat branchBenchmark={branchBenchmark} display={display} dataset={branchDatasets[i]} />
                             ))
                         }
                     </div>
@@ -168,7 +145,7 @@ export default function Analytics() {
                 </button>
             </div>
             <div className='mt-14'>
-                {benchmarkPage && max && <Benchmark duration={avg} altDuration={max} />}
+                {benchmarkPage && max && avg && <Benchmark duration={avg} altDuration={max} />}
             </div>
         </>
     );
