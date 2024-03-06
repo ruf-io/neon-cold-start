@@ -20,6 +20,11 @@
     ol,
     ul {
         @apply list-disc list-inside marker:text-white;
+
+        ul {
+            list-style-type: circle !important;
+            margin-left: 2rem
+        }
     }
 }
 
