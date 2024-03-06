@@ -43,7 +43,7 @@ const DateFilter = (props: Props) => {
             default:
                 break;
         }
-    }, []);
+    }, [handleChange]);
 
     return (
         <div className='ml-auto text-gray-400'>

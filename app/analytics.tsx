@@ -117,9 +117,9 @@ export default function Analytics() {
                     </div>
                 </div>
                 <div className="flex justify-between pt-10">
-                    <Stat selected={display === Display.Average} stat={formatFloatToStatString(avg)} title="Average" id="avgStat" onClick={onClick} />
-                    <Stat selected={display === Display.Maximum} stat={formatFloatToStatString(max)} title="Maximum" id="maxStat" onClick={onClick} />
-                    <Stat selected={display === Display.Minimum} stat={formatFloatToStatString(min)} title="Minimum" id="minStat" onClick={onClick} />
+                    <Stat selected={display === Display.Average} stat={formatFloatToStatString(avg)} title="Average" id="avgStat" key={"avgStat"} onClick={onClick} />
+                    <Stat selected={display === Display.Maximum} stat={formatFloatToStatString(max)} title="Maximum" id="maxStat" key={"maxStat"} onClick={onClick} />
+                    <Stat selected={display === Display.Minimum} stat={formatFloatToStatString(min)} title="Minimum" id="minStat" key={"minStat"} onClick={onClick} />
                 </div>
                 <div className="text-center m-auto mt-10 w-fit">
                     <button
@@ -142,7 +142,7 @@ export default function Analytics() {
                     <div className='grid grid-cols-2 gap-6 pt-10'>
                         {
                             benchmark && benchmark.branches.map((branchBenchmark, i) => (
-                                <ChartStat branchBenchmark={branchBenchmark} display={display} dataset={branchDatasets[i]} />
+                                <ChartStat key={branchBenchmark.name} branchBenchmark={branchBenchmark} display={display} dataset={branchDatasets[i]} />
                             ))
                         }
                     </div>
