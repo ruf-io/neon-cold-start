@@ -2,7 +2,7 @@
     "branches": [
         {
             "name": "Ten",
-            "description": "Contains around 10MB of data installed.",
+            "description": "Contains around 10MB of data stored.",
             "setupQueries": [
                 "CREATE TABLE IF NOT EXISTS series (serie_num INT);",
                 "INSERT INTO series VALUES (generate_series(0, 100000));",
@@ -12,7 +12,7 @@
         },
         {
             "name": "Hundred",
-            "description": "Contains around 100MB of data installed.",
+            "description": "Contains around 100MB of data stored.",
             "setupQueries": [
                 "CREATE TABLE IF NOT EXISTS series (serie_num INT);",
                 "INSERT INTO series VALUES (generate_series(0, 100000));",
@@ -35,7 +35,8 @@
             "description": "Runs a scan over a table.",
             "setupQueries": [
                 "CREATE TABLE IF NOT EXISTS series (serie_num INT);",
-                "INSERT INTO series VALUES (generate_series(0, 1000));"
+                "INSERT INTO series VALUES (generate_series(0, 1000));",
+                "CREATE INDEX IF NOT EXISTS series_idx ON series (serie_num);"
             ],
             "benchmarkQuery": "SELECT * FROM series;"
         },
@@ -103,17 +104,23 @@
                 "CREATE EXTENSION \"unaccent\";",
                 "CREATE EXTENSION \"unit\";",
                 "CREATE EXTENSION \"uuid-ossp\";",
-                "CREATE EXTENSION \"xml2\";"
+                "CREATE EXTENSION \"xml2\";",
+                "CREATE TABLE IF NOT EXISTS series (serie_num INT);",
+                "INSERT INTO series VALUES (generate_series(0, 1000));",
+                "CREATE INDEX IF NOT EXISTS series_idx ON series (serie_num);"
             ],
-            "benchmarkQuery": "SELECT 100;"
+            "benchmarkQuery": "SELECT * FROM series WHERE serie_num = 10;"
         },
         {
             "name": "Timescale",
             "description": "Contains the TimescaleDB extension installed.",
             "setupQueries": [
-                "CREATE EXTENSION \"timescaledb\";"
+                "CREATE EXTENSION \"timescaledb\";",
+                "CREATE TABLE IF NOT EXISTS series (serie_num INT);",
+                "INSERT INTO series VALUES (generate_series(0, 1000));",
+                "CREATE INDEX IF NOT EXISTS series_idx ON series (serie_num);"
             ],
-            "benchmarkQuery": "SELECT 100;"
+            "benchmarkQuery": "SELECT * FROM series WHERE serie_num = 10;"
         }
     ]
 }

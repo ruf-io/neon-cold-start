@@ -1,3 +1,4 @@
+import { formatFloatToStatString } from "@/components/stat";
 import React, { useEffect, useState } from "react";
 
 interface Props {
@@ -41,11 +42,12 @@ const Benchmark = (props: Props) => {
 
     return (
         <>
-            <div className="text-center">
-                <h2>Time to load</h2>
+            <div className="text-center mb-6">
+                <p className="text-2xl">Time to load</p>
+                <p className="text-sm text-gray-600">Use this as a reference to understand how long it takes for a user to see results from a cold start.</p>
             </div>
 
-            <div className="border p-4 py-8 border-slate-500 rounded">
+            <div className="border p-4 py-8 border-gray-600 border-opacity-50 rounded">
                 <div className="grid grid-cols-2">
                     <div>
                         <div className="border border-slate-700 shadow rounded-md p-4 max-w-sm w-full mx-auto">
@@ -67,7 +69,7 @@ const Benchmark = (props: Props) => {
                             {display && <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" className="w-5 h-5 inline-block stroke-green-600">
                                 <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
                             </svg>
-                            } Average ({duration}ms)
+                            } Average ({formatFloatToStatString(duration)})
                         </p>
                     </div>
                     <div>
@@ -90,12 +92,12 @@ const Benchmark = (props: Props) => {
                             {altDisplay && <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" className="w-5 h-5 inline-block stroke-green-600">
                                 <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
                             </svg>
-                            } Maximum ({altDuration}ms)
+                            } Maximum ({formatFloatToStatString(altDuration)})
                         </p>
                     </div>
                 </div>
                 <div className="m-auto text-4xl w-fit mt-10">
-                    {counter}ms
+                    {formatFloatToStatString(counter)}
                 </div>
             </div>
         </>

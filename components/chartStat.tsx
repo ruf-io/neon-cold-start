@@ -28,7 +28,7 @@ const ChartStat = (props: Props) => {
                 <p>{name}</p>
                 <Question className="w-3 h-3 ml-2 whitespace-pre-line" text={<p><b>Benchmark Description</b><br />{description}</p>} />
             </div>
-            <div className='h-12'>
+            <div className='h-12 mt-4'>
                 <Chart
                     avg={avg}
                     max={max}
