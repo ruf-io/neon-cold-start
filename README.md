@@ -66,23 +66,27 @@ Neon suspends the database compute to save resources after five minutes of inact
 
 ## Setup
 
-The code will setup a new project with two branches: main and benchmark. The main branch will store the benchmarks, while the benchmark branch is used to suspend and resume the compute and run the benchmarks.  
+The code will set up a new project with multiple branches. The main branch will store the benchmarks, while branches have a custom setup and are later used to run the benchmarks. You can set up your own branch by modifying the `/setup/config.json` file.
 
 ## Benchmark
 
-The benchmark itself is a lambda function that suspends the benchmark branch compute and runs a query in an indexed table:
+The benchmark itself is a Lambda function that suspends the compute resources of the benchmark branch and runs a benchmark query. An example of a branch using the TimescaleDB extension would be as follows:
 
-```sql
--- From the setup step:
-CREATE TABLE IF NOT EXISTS series (serie_num INT);
-INSERT INTO series VALUES (generate_series(0, 100000));
-CREATE INDEX IF NOT EXISTS series_idx ON series (serie_num);
-
--- Benchmark query:
-SELECT * FROM series WHERE serie_num = 1000000;
+```json
+{
+    "name": "Timescale",
+    "description": "Contains the TimescaleDB extension installed.",
+    "setupQueries": [
+        "CREATE EXTENSION \"timescaledb\";",
+        "CREATE TABLE IF NOT EXISTS series (serie_num INT);",
+        "INSERT INTO series VALUES (generate_series(0, 1000));",
+        "CREATE INDEX IF NOT EXISTS series_idx ON series (serie_num);"
+    ],
+    "benchmarkQuery": "SELECT * FROM series WHERE serie_num = 10;"
+}
 ```
 
-After the benchmark, the result are stored in the main branch in the following table:
+After the benchmark, the results are stored in the main branch in the following table:
 
 ```sql
 CREATE TABLE IF NOT EXISTS benchmarks (id TEXT, duration INT, ts TIMESTAMP);
@@ -90,7 +94,7 @@ CREATE TABLE IF NOT EXISTS benchmarks (id TEXT, duration INT, ts TIMESTAMP);
 
 ## Application
 
-A web application will run a query over all the benchmarks stored in the main branch and calculate basic metrics (avg, max, min). This will give you an overview on how much cold starts are taking.
+The web application will query the benchmarks stored in the main branch, calculate basic metrics (average, maximum, minimum), and display them on a chart. This will give you an overview of the duration of cold starts.
 
 ## Learn More
 

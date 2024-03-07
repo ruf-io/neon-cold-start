@@ -9,7 +9,6 @@ const configFile = JSON.parse(readFileSync(__dirname + "/config.json", "utf-8"))
  * Benchmark database
  */
 const API_KEY = process.env["API_KEY"];
-const PROJECT_REGION = process.env["PROJECT_REGION"] || "aws-us-east-1";
 const PROJECT_NAME = process.env["PROJECT_NAME"] || "Benchmark";
 const DATABASE_NAME = process.env["DATABASE_NAME"] || "neondb";
 const ROLE_NAME = process.env["ROLE_NAME"] || "BenchmarkRole";
@@ -19,7 +18,7 @@ const MAIN_BRANCH_NAME = process.env["BENCHMARK_BRANCH_NAME"] || "main";
  * Fetches all items from a paginated request from Neon.
  * @param {Function} apiFunction - The API client function to call. It should accept an object as its only argument.
  * @param {Object} initialParams - Initial parameters to pass to the API function.
- * @param {Function} itemKeyExtractor - Key for items from the API response.
+ * @param {Function} itemKey - Key for items from the API response.
  * @returns {Promise<void>}
  */
 const fetchAllItems = async (apiFunction, baseParams, itemKey) => {
@@ -60,9 +59,7 @@ const fetchProjects = async (apiClient) => {
  * 
  * @param {Object} apiClient The API client used to communicate with the backend.
  * @param {string} projectId The unique identifier for the project.
- * @returns {Promise<Object>} A promise that resolves to an object containing:
- * - `endpoints`: The endpoint URL for the main and benchmark branch.
- * - `password`: The role password for the main and benchmark role.
+ * @returns {Promise<Object>} A promise that resolves to an object containing each branch configuration.
  */
 const getConfig = async (apiClient, projectId) => {
     console.log("Reading benchmark config.");
@@ -156,7 +153,7 @@ const suspendProjectEndpoint = async (apiClient, projectId, endpointId) => {
  * The project's endpoint is suspended again after the benchmarking is completed.
  * 
  * @param {Object} project An object containing the project's details.
- * @param {Object} config An object containing the configuration details for benchmarking.
+ * @param {Object} config An object containing the branchs' configuration.
  * @param {Object} apiClient The API client used to communicate with the backend services.
  * @returns {Promise<void>} A promise that resolves when the benchmarking process is complete,
  * indicating that no value is returned but the side effects (benchmarking the project) have been completed.
@@ -173,7 +170,8 @@ const benchmarkProject = async ({ id: projectId }, config, apiClient) => {
         ssl: true,
     });
     const insertPromises = [];
-    // This time is used to identify and group by the benchmarks.
+
+    // The initial time is used to identify and group the benchmarks as a summary.
     const initialTime = new Date();
 
     for (const branchName of Object.keys(config)) {

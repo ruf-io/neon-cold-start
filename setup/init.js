@@ -1,4 +1,4 @@
-const { Pool, Client } = require("pg");
+const { Pool } = require("pg");
 const { createApiClient } = require("@neondatabase/api-client");
 const { parse } = require("pg-connection-string");
 const { readFileSync } = require("fs");
@@ -88,6 +88,7 @@ const initProject = async (apiClient, branches) => {
             throw new Error("Configuration file has missing fields.");
         }
 
+        // Create the project branch
         const { data: benchmarkBranchData } = await apiClient.createProjectBranch(projectId, {
             branch: {
                 name,
