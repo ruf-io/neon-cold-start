@@ -27,20 +27,26 @@ const fetchAllItems = async (apiFunction, baseParams, itemKey) => {
     let continueFetching = true;
 
     while (continueFetching) {
-        const response = await apiFunction(params);
-        const items = response.data[itemKey];
-        const cursor = response.pagination && response.pagination.cursor;
+        try {
 
-        if (items.length > 0) {
-            baseItems.push(...items);
-        } else {
-            continueFetching = false;
-        }
+            const response = await apiFunction(params);
+            const items = response.data[itemKey];
+            const cursor = (response.pagination && response.pagination.cursor) ||
+                (response.data.pagination && response.data.pagination.cursor);
 
-        if (cursor && Array.isArray(items) && items.length > 0) {
-            params = { ...params, cursor };
-        } else {
-            continueFetching = false;
+            if (items.length > 0) {
+                baseItems.push(...items);
+            } else {
+                continueFetching = false;
+            }
+
+            if (cursor && Array.isArray(items) && items.length > 0) {
+                params = { ...params, cursor };
+            } else {
+                continueFetching = false;
+            }
+        } catch (err) {
+            console.error(err);
         }
     }
 
@@ -52,6 +58,23 @@ const fetchAllItems = async (apiFunction, baseParams, itemKey) => {
  */
 const fetchProjects = async (apiClient) => {
     return await fetchAllItems(apiClient.listProjects, {}, "projects");
+}
+
+/**
+ * Returns shared projects in the account.
+ */
+const fetchSharedProjects = async () => {
+    const headers = new Headers();
+    headers.set("Authorization", `Bearer ${API_KEY}`);
+    headers.set("Accept", "application/json");
+    headers.set("Content-Type", "application/json");
+
+    const response = await fetch("https://console.neon.tech/api/v2/projects/shared", {
+        headers
+    });
+    const { projects } = await response.json();
+
+    return projects;
 }
 
 /**
@@ -237,18 +260,18 @@ exports.handler = async () => {
         apiKey: API_KEY,
     });
 
-    try {
-        const projects = await fetchProjects(apiClient);
-        let project = projects.find(x => x.name === PROJECT_NAME);
+    const projects = await fetchProjects(apiClient);
+    let project = projects.find(x => x.name === PROJECT_NAME);
+
+    if (!project) {
+        let projects = await fetchSharedProjects();
+        project = projects.find(x => x.name === PROJECT_NAME);
 
         if (!project) {
             throw new Error("Benchmark project not found.");
         }
-
-        const config = await getConfig(apiClient, project.id);
-        await benchmarkProject(project, config, apiClient);
-    } catch (err) {
-        console.log(err);
-        throw err;
     }
+
+    const config = await getConfig(apiClient, project.id);
+    await benchmarkProject(project, config, apiClient);
 }
