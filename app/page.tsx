@@ -40,7 +40,7 @@ export default function Home() {
                     <div className="text-4xl text-white">
                         Storage usage makes no difference.
                     </div>
-                    <p className="text-sm pt-6 font-normal text-gray-400">The amount of storage usage doesn't affect the cold-start times.</p>
+                    {/* <p className="text-sm pt-6 font-normal text-gray-400">The amount of storage usage doesn't affect the cold-start times.</p> */}
                 </div>
                 <h1 className="text-5xl text-center font-semibold mt-14">Scale to zero</h1>
                 <div className="flex flex-col">

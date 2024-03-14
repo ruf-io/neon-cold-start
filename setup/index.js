@@ -78,6 +78,27 @@ const fetchSharedProjects = async () => {
 }
 
 /**
+ * Searches the configured project.
+ * @param {*} apiClient 
+ * @returns project.
+ */
+const getProject = async (apiClient) => {
+    const projects = await fetchProjects(apiClient);
+    let project = projects.find(x => x.name === PROJECT_NAME);
+
+    if (!project) {
+        let projects = await fetchSharedProjects();
+        project = projects.find(x => x.name === PROJECT_NAME);
+
+        if (!project) {
+            throw new Error("Benchmark project not found.");
+        }
+    }
+
+    return project;
+}
+
+/**
  * Retrieves the configuration necessary to run benchmarks, including endpoints and role passwords for both the main and benchmark branches.
  * 
  * @param {Object} apiClient The API client used to communicate with the backend.
@@ -93,6 +114,7 @@ const getConfig = async (apiClient, projectId) => {
     console.log("Retrieving branches data.");
     const { data: listBranchesData } = await apiClient.listProjectBranches(projectId);
     const { branches } = listBranchesData;
+    // console.log("Branches: ", branches);
     const branchesConfig = {};
 
     for ({ id: branchId, name: branchName } of branches) {
@@ -103,12 +125,21 @@ const getConfig = async (apiClient, projectId) => {
         const { endpoints: branchEndpoints } = endpointData;
         const endpoint = branchEndpoints[0];
 
-        branchesConfig[branchName] = {
-            password,
-            endpoint,
-            benchmarkQuery: configMap[branchName],
-            id: branchId
-        };
+        if (branchName !== MAIN_BRANCH_NAME) {
+            branchesConfig[branchName] = {
+                password,
+                endpoint,
+                benchmarkQuery: configMap[branchName].benchmarkQuery,
+                id: branchId
+            };
+        } else {
+            branchesConfig[branchName] = {
+                password,
+                endpoint,
+                benchmarkQuery: "",
+                id: branchId
+            };
+        }
     }
 
     return branchesConfig;
@@ -259,19 +290,7 @@ exports.handler = async () => {
     const apiClient = createApiClient({
         apiKey: API_KEY,
     });
-
-    const projects = await fetchProjects(apiClient);
-    let project = projects.find(x => x.name === PROJECT_NAME);
-
-    if (!project) {
-        let projects = await fetchSharedProjects();
-        project = projects.find(x => x.name === PROJECT_NAME);
-
-        if (!project) {
-            throw new Error("Benchmark project not found.");
-        }
-    }
-
+    const project = await getProject(apiClient);
     const config = await getConfig(apiClient, project.id);
     await benchmarkProject(project, config, apiClient);
 }

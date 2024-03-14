@@ -1,7 +1,7 @@
 {
     "branches": [
         {
-            "name": "Half",
+            "name": "Ten",
             "description": "Contains around 500MB of data stored.",
             "setupQueries": [
                 "CREATE TABLE IF NOT EXISTS series (serie_num INT);",
@@ -11,7 +11,7 @@
             "benchmarkQuery": "SELECT * FROM series WHERE serie_num = 1000000;"
         },
         {
-            "name": "One",
+            "name": "Hundred",
             "description": "Contains around 1GB of data stored.",
             "setupQueries": [
                 "CREATE TABLE IF NOT EXISTS series (serie_num TEXT);",
@@ -28,7 +28,7 @@
                 "INSERT INTO series VALUES (generate_series(0, 1000));",
                 "CREATE INDEX IF NOT EXISTS series_idx ON series (serie_num);"
             ],
-            "benchmarkQuery": "SELECT serie FROM series GROUP BY serie;"
+            "benchmarkQuery": "SELECT serie_num FROM series GROUP BY serie_num;"
         },
         {
             "name": "Select",

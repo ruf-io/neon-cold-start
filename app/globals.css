@@ -21,10 +21,10 @@
     ul {
         @apply list-disc list-inside marker:text-white;
 
-        ul {
+        /* ul {
             list-style-type: circle !important;
             margin-left: 2rem
-        }
+        } */
     }
 }
 
