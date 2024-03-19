@@ -17,7 +17,7 @@ interface Props {
 }
 
 export const formatFloatToStatString = (float?: number) => {
-    return float ? `${float.toFixed(0)}ms` : "-";
+    return float ? `${(float / 1000).toPrecision(3)}s` : "-";
 }
 
 const Stat = (props: Props) => {
@@ -36,7 +36,7 @@ const Stat = (props: Props) => {
             `}
         >
             <p className="text-sm text-gray-600 font-light mb-5 text-center">{title}</p>
-            <p className="text-5xl mt-5 truncate">{stat}</p>
+            <p className="text-5xl mt-5 truncate text-center">{stat}</p>
         </div>
     )
 }

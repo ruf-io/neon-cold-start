@@ -41,7 +41,7 @@ npm run deploy
 source .env
 
 # 2. Zip the code:
-zip -j lambda.zip ./setup/index.js && zip -rq lambda.zip node_modules -x "*next*" -x "typescript" -x "*chartjs*"
+zip -j lambda.zip ./setup/index.js && zip -j lambda.zip ./setup/config.json && zip -rq lambda.zip node_modules -x "*next*" -x "typescript" -x "*chartjs*"
 
 # 3. Create a role and attach the policy:
 ROLE_ARN=$(aws iam create-role --role-name neon-benchmark-lambda-execute-role --assume-role-policy-document file://setup/trust-policy.json --query 'Role.Arn' --output text)
@@ -70,7 +70,7 @@ The code will set up a new project with multiple branches. The main branch will 
 
 ## Benchmark
 
-The benchmark itself is a Lambda function that suspends the compute resources of the benchmark branch and runs a benchmark query. An example of a branch using the TimescaleDB extension would be as follows:
+The benchmark itself is a Lambda function that suspends the compute resources of the benchmark branch and runs a benchmark query using `pg`, a [Node.JS Postgres client](https://github.com/brianc/node-postgres). An example of a branch using the TimescaleDB extension would be as follows:
 
 ```json
 {

@@ -8,15 +8,26 @@ if [[ "$ACTION" == "update" ]]; then
     echo "Updating lambda."
 
     # Assuming the zip and lambda update commands are sufficient for an update
-    # 2. Zip the code:
+    # 1. Zip the code:
     echo "(1/2) Building zip."
     zip -j lambda.zip ./setup/index.js && zip -j lambda.zip ./setup/config.json && zip -rq lambda.zip node_modules -x "*next*" -x "typescript" -x "*chartjs*"
 
-    # 4. Upload the updated lambda code:
+    # 2. Upload the updated lambda code:
     echo "(2/2) Updating Lambda code — this may take a few seconds."
     aws lambda update-function-code --function-name BenchmarkRunner --zip-file fileb://lambda.zip --query 'FunctionArn' --output text
 
     echo "Lambda code update complete."
+elif [[ "$ACTION" == "delete" ]]; then
+    echo "(1/3) Deleting lambda."
+    aws lambda delete-function --function-name BenchmarkRunner
+
+    echo "(2/3) Deleting Roles."
+    aws iam detach-role-policy --role-name neon-benchmark-lambda-execute-role --policy-arn arn:aws:iam::aws:policy/service-role/AWSLambdaRole
+    aws iam detach-role-policy --role-name neon-benchmark-lambda-execute-role --policy-arn arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+    aws iam delete-role --role-name neon-benchmark-lambda-execute-role
+
+    echo "(3/3) Deleting Schedule."
+    aws scheduler delete-schedule --name NeonColdBenchmarkScheduler
 else
     echo "Starting deployment."
 
