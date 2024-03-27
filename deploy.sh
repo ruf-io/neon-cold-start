@@ -3,6 +3,11 @@
 # Set's the deployment action.
 ACTION=$1
 
+# Constants
+LAMBDA_NAME=BenchmarkRunner
+ROLE_NAME=neon-benchmark-lambda-execute-role
+SCHEDULER_NAME=NeonColdBenchmarkScheduler
+
 # Check if LAMBDA is true; if so, only update lambda code
 if [[ "$ACTION" == "update" ]]; then
     echo "Updating lambda."
@@ -14,20 +19,20 @@ if [[ "$ACTION" == "update" ]]; then
 
     # 2. Upload the updated lambda code:
     echo "(2/2) Updating Lambda code — this may take a few seconds."
-    aws lambda update-function-code --function-name BenchmarkRunner --zip-file fileb://lambda.zip --query 'FunctionArn' --output text
+    aws lambda update-function-code --function-name $LAMBDA_NAME --zip-file fileb://lambda.zip --query 'FunctionArn' --output text
 
     echo "Lambda code update complete."
 elif [[ "$ACTION" == "delete" ]]; then
     echo "(1/3) Deleting lambda."
-    aws lambda delete-function --function-name BenchmarkRunner
+    aws lambda delete-function --function-name $LAMBDA_NAME
 
     echo "(2/3) Deleting Roles."
-    aws iam detach-role-policy --role-name neon-benchmark-lambda-execute-role --policy-arn arn:aws:iam::aws:policy/service-role/AWSLambdaRole
-    aws iam detach-role-policy --role-name neon-benchmark-lambda-execute-role --policy-arn arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
-    aws iam delete-role --role-name neon-benchmark-lambda-execute-role
+    aws iam detach-role-policy --role-name $ROLE_NAME --policy-arn arn:aws:iam::aws:policy/service-role/AWSLambdaRole
+    aws iam detach-role-policy --role-name $ROLE_NAME --policy-arn arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+    aws iam delete-role --role-name $ROLE_NAME
 
     echo "(3/3) Deleting Schedule."
-    aws scheduler delete-schedule --name NeonColdBenchmarkScheduler
+    aws scheduler delete-schedule --name $SCHEDULER_NAME
 else
     echo "Starting deployment."
 
@@ -41,18 +46,18 @@ else
 
     # 3. Create a role and attach the policy:
     echo "(3/5) Creating role and attaching policies."
-    ROLE_ARN=$(aws iam create-role --role-name neon-benchmark-lambda-execute-role --assume-role-policy-document file://setup/trust-policy.json --query 'Role.Arn' --output text)
-    aws iam attach-role-policy --role-name neon-benchmark-lambda-execute-role --policy-arn arn:aws:iam::aws:policy/service-role/AWSLambdaRole
-    aws iam attach-role-policy --role-name neon-benchmark-lambda-execute-role --policy-arn arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+    ROLE_ARN=$(aws iam create-role --role-name $ROLE_NAME --assume-role-policy-document file://setup/trust-policy.json --query 'Role.Arn' --output text)
+    aws iam attach-role-policy --role-name $ROLE_NAME --policy-arn arn:aws:iam::aws:policy/service-role/AWSLambdaRole
+    aws iam attach-role-policy --role-name $ROLE_NAME --policy-arn arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
 
     # 4. Upload the lambda code:
     echo "(4/5) Creating Lambda — this may take a few seconds."
-    LAMBDA_ARN=$(aws lambda create-function --function-name BenchmarkRunner --runtime nodejs20.x --role $ROLE_ARN --handler index.handler --timeout 120 --zip-file fileb://lambda.zip --query 'FunctionArn' --output text --environment Variables={API_KEY=$API_KEY})
+    LAMBDA_ARN=$(aws lambda create-function --function-name $LAMBDA_NAME --runtime nodejs20.x --role $ROLE_ARN --handler index.handler --timeout 120 --zip-file fileb://lambda.zip --query 'FunctionArn' --output text --environment Variables={API_KEY=$API_KEY})
 
     # 5. Schedule every 30 minutes:
     echo "(5/5) Creating schedule."
     aws scheduler create-schedule \
-        --name NeonColdBenchmarkScheduler \
+        --name $SCHEDULER_NAME \
         --schedule-expression "rate(30 minutes)" \
         --target "{\"RoleArn\": \"$ROLE_ARN\", \"Arn\":\"$LAMBDA_ARN\" }" \
         --flexible-time-window '{ "Mode": "FLEXIBLE", "MaximumWindowInMinutes": 15}'

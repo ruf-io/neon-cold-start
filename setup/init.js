@@ -91,7 +91,7 @@ const initProject = async (apiClient, branches) => {
         // Create the project branch
         const { data: benchmarkBranchData } = await apiClient.createProjectBranch(projectId, {
             branch: {
-                name,
+                name: name.replace(/\s+/g, '_').toLowerCase(),
                 role_name: ROLE_NAME,
                 database_name: DATABASE_NAME,
             },

@@ -1,3 +1,7 @@
 ## Benchmark methodology
 
-The benchmark sets up six different branch configurations in the same region (us-east) that vary by database size, number of extensions, and query operation (`GROUP BY` vs. `SELECT`). For each branch, an AWS Lambda executes a benchmark every 30 minutes by querying a suspended endpoint. If the endpoint is active, the Lambda suspends the branch's endpoint before initiating the benchmark. The benchmark time is measured by the duration it takes to return a query.
+The benchmark sets up six different branch configurations in the same region (us-east),
+using different database sizes, numbers of extensions, and query operations (GROUP BY vs. SELECT).
+For each branch, an AWS Lambda executes a benchmark every 30 minutes.
+The benchmark itself consists of measuring the response time for a query against the target branch while it is in a suspended state.
+If the branch is warm, the Lambda suspends the branch's endpoint before the benchmark.

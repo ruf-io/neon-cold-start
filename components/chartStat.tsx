@@ -25,7 +25,12 @@ const ChartStat = (props: Props) => {
     return (
         <div key={name} className='overflow-hidden border rounded-md hover:border-opacity-100 text-center text-gray-600 border-opacity-0 p-4 border-gray-700'>
             <div className="flex space-x-1 items-center py-1">
-                <p>{name}</p>
+                {/* Format to uppercase. */}
+                <p>{
+                    name.replace(/_/g, ' ')
+                    .toLowerCase()
+                    .replace(/(^\w|\s\w)/g, s => s.toUpperCase())
+                }</p>
                 <Question className="w-3 h-3 ml-2 whitespace-pre-line" text={<p><b>Benchmark Description</b><br />{description}</p>} />
             </div>
             <div className='h-12 mt-4'>

@@ -108,7 +108,7 @@ const getProject = async (apiClient) => {
 const getConfig = async (apiClient, projectId) => {
     console.log("Reading benchmark config.");
     const configMap = {};
-    configFile.branches.forEach(branch => { configMap[branch.name] = branch; });
+    configFile.branches.forEach(branch => { configMap[branch.name.replace(/\s+/g, '_').toLowerCase()] = branch; });
 
     // Get branches IDs.
     console.log("Retrieving branches data.");

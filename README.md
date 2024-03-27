@@ -28,7 +28,7 @@ This is a [Neon](http://neon.tech) tool to benchmark cold starts.
 You can configure AWS to schedule a benchmark every 30 minutes. This will generate enough datapoints throughout the day to analyze the average time for cold starts. To deploy on AWS run the following command:
 
 ```bash
-# Make sure to install and configure the latest AWS CLI (https://aws.amazon.com/cli/).
+# Make sure to have installed and configured the latest AWS CLI (https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html).
 npm run deploy
 ```
 
