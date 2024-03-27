@@ -1,6 +1,7 @@
 const { Pool } = require("pg");
 const { createApiClient } = require("@neondatabase/api-client");
 const { readFileSync } = require("fs");
+const { neon } = require('@neondatabase/serverless');
 
 require('dotenv').config();
 const configFile = JSON.parse(readFileSync(__dirname + "/config.json", "utf-8"));
@@ -251,18 +252,11 @@ const benchmarkProject = async ({ id: projectId }, config, apiClient) => {
 
             // Run benchmark
             const before = new Date();
-            const benchmarkPool = new Pool({
-                host: benchmarkEndpoint.host,
-                password: benchmarkRolePassword,
-                user: ROLE_NAME,
-                database: DATABASE_NAME,
-                ssl: true,
-            });
+            const sql = neon(`postgresql://${ROLE_NAME}:${benchmarkRolePassword}@${benchmarkEndpoint.host}/${DATABASE_NAME}?sslmode=require`);
+            await sql(benchmarkQuery);
 
-            await benchmarkPool.query(benchmarkQuery);
             const after = new Date();
             const benchmarkValue = after.getTime() - before.getTime();
-            benchmarkPool.end();
 
             // Store benchmark
             insertPromises.push(
@@ -289,7 +283,7 @@ exports.handler = async () => {
     if (!API_KEY) {
         throw new Error("API KEY is missing.");
     }
-
+    
     const apiClient = createApiClient({
         apiKey: API_KEY,
     });
