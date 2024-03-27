@@ -276,6 +276,9 @@ const benchmarkProject = async ({ id: projectId }, config, apiClient) => {
             await waitProjectOpFinished(apiClient, projectId);
             await suspendProjectEndpoint(apiClient, projectId, benchmarkEndpoint.id);
         }
+
+        // Sleep 20 seconds before the next benchmark
+        await new Promise((res, ) => setTimeout(() => res(), 20000));
     }
 
     await Promise.all(insertPromises);
