@@ -217,13 +217,7 @@ const benchmarkProject = async ({ id: projectId }, config, apiClient) => {
     console.log("Starting benchmark.");
     await waitProjectOpFinished(apiClient, projectId);
     const mainConfig = config[MAIN_BRANCH_NAME];
-    const mainPool = new Pool({
-        host: mainConfig.endpoint.host,
-        password: mainConfig.password,
-        user: ROLE_NAME,
-        database: DATABASE_NAME,
-        ssl: true,
-    });
+    const mainBranchSql = neon(`postgresql://${ROLE_NAME}:${mainConfig.password}@${mainConfig.endpoint.host}/${DATABASE_NAME}?sslmode=require`);
     const insertPromises = [];
 
     // The initial time is used to identify and group the benchmarks as a summary.
@@ -260,7 +254,7 @@ const benchmarkProject = async ({ id: projectId }, config, apiClient) => {
 
             // Store benchmark
             insertPromises.push(
-                mainPool.query(
+                mainBranchSql(
                     "INSERT INTO benchmarks VALUES ($1, $2, $3, now())",
                     [branchId, initialTime, benchmarkValue]
                 )
@@ -276,7 +270,6 @@ const benchmarkProject = async ({ id: projectId }, config, apiClient) => {
     }
 
     await Promise.all(insertPromises);
-    mainPool.end();
 }
 
 exports.handler = async () => {
