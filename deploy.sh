@@ -52,7 +52,7 @@ else
 
     # 4. Upload the lambda code:
     echo "(4/5) Creating Lambda — this may take a few seconds."
-    LAMBDA_ARN=$(aws lambda create-function --function-name $LAMBDA_NAME --runtime nodejs20.x --role $ROLE_ARN --handler index.handler --timeout 120 --zip-file fileb://lambda.zip --query 'FunctionArn' --output text --environment Variables={API_KEY=$API_KEY})
+    LAMBDA_ARN=$(aws lambda create-function --function-name $LAMBDA_NAME --runtime nodejs20.x --role $ROLE_ARN --handler index.handler --timeout 240 --zip-file fileb://lambda.zip --query 'FunctionArn' --output text --environment Variables={API_KEY=$API_KEY})
 
     # 5. Schedule every 30 minutes:
     echo "(5/5) Creating schedule."
