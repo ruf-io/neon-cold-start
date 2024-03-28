@@ -23,7 +23,7 @@ export default function Home() {
                     </div>
                 </div>
                 <div className="ml-auto my-auto ">
-                    <a href="https://github.com" target="_blank">
+                    <a href="https://github.com/ruf-io/neon-cold-start" target="_blank">
                         <Image src={"github.svg"} alt={"Github logo"} width={45} height={45} />
                     </a>
                 </div>
