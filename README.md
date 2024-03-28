@@ -9,25 +9,23 @@ This is a [Neon](http://neon.tech) tool to benchmark cold starts.
     npm install
     ```
 2. Create an `.env` file using `.env.example` as template.
-3. Setup the benchmark:
+3. Setup the project:
     ```bash
-    # This command will try to setup a new Neon project.
-    # Add the output to the .env file
     npm run setup
     ```
 4. Run a single benchmark:
     ```bash
     npm run benchmark
     ```
-5. Run the development server:
+5. Run the app:
     ```bash
     npm run serve
     ```
 6. Open [http://localhost:3000](http://localhost:3000) with your browser to view the results. 
 
-### Run recurrently
+### Benchmark recurrently
 
-You can configure AWS to schedule a benchmark every 30 minutes. This will generate enough datapoints throughout the day to analyze the average time for cold starts. To deploy on AWS run the following command:
+The following command will configure AWS to schedule a benchmark using Lambda every 30 minutes:
 
 ```bash
 # Make sure to have installed and configured the latest AWS CLI (https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html).
@@ -62,13 +60,15 @@ aws scheduler create-schedule \
 ```
 </details>
 
+This will generate enough datapoints throughout the day to calculate the average time for your own cold starts.
+
 ## The problem
 
 Neon suspends the database compute to save resources after five minutes of inactivity. The next time the database needs to process a query, the compute will need to resume. This is known as the cold-start problem. Understanding how much time takes the cold-start is the idea for this project.
 
 ## Setup
 
-The code will set up a new project with multiple branches. The main branch will store the benchmarks, while branches have a custom setup and are later used to run the benchmarks. You can set up your own branch by modifying the `/setup/config.json` file.
+The setup command (`npm run setup`) will create a new Neon project with multiple branches configured in the `/setup/config.json` file. The project's _main_ branch will store the benchmark results, while the other branches will be used just for benchmarking.
 
 ## Benchmark
 
@@ -88,7 +88,7 @@ The benchmark is a Lambda function that suspends the compute resources of a bran
 }
 ```
 
-After the benchmark, the results are stored in the main branch in the following table:
+After the benchmark, the results are stored in the _main_ branch in the following table:
 
 ```sql
 CREATE TABLE IF NOT EXISTS benchmarks (
@@ -101,7 +101,7 @@ CREATE TABLE IF NOT EXISTS benchmarks (
 
 ## Application
 
-The web application will query the benchmarks stored in the main branch, calculate basic metrics (average, maximum, minimum), and display them on a chart. This will give you an overview of the duration of cold starts.
+The web app will query the benchmarks stored in the _main_ branch, calculate basic metrics (average, maximum, minimum), and display them on a chart to give an overview of the cold start durations.
 
 ## Learn More
 
