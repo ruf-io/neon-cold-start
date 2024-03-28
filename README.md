@@ -1,3 +1,5 @@
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fjoacoc%2Fneon-cold-start&env=CONNECTION_STRING&envDescription=Connection%20string%20returned%20by%20the%20setup%20step)
+
 This is a [Neon](http://neon.tech) tool to benchmark cold starts.
 
 ## Getting Started
@@ -49,7 +51,7 @@ aws iam attach-role-policy --role-name neon-benchmark-lambda-execute-role --poli
 aws iam attach-role-policy --role-name neon-benchmark-lambda-execute-role --policy-arn arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
 
 # 4. Upload the lambda code:
-LAMBDA_ARN=$(aws lambda create-function --function-name BenchmarkRunner --runtime nodejs20.x --role $ROLE_ARN --handler index.handler --timeout 120 --zip-file fileb://lambda.zip --query 'FunctionArn' --output text --environment Variables={API_KEY=$API_KEY})
+LAMBDA_ARN=$(aws lambda create-function --function-name BenchmarkRunner --runtime nodejs20.x --role $ROLE_ARN --handler index.handler --timeout 240 --zip-file fileb://lambda.zip --query 'FunctionArn' --output text --environment Variables={API_KEY=$API_KEY})
 
 # 5. Schedule every 30 minutes:
 aws scheduler create-schedule \
@@ -70,7 +72,7 @@ The code will set up a new project with multiple branches. The main branch will 
 
 ## Benchmark
 
-The benchmark itself is a Lambda function that suspends the compute resources of the benchmark branch and runs a benchmark query using `pg`, a [Node.JS Postgres client](https://github.com/brianc/node-postgres). An example of a branch using the TimescaleDB extension would be as follows:
+The benchmark is a Lambda function that suspends the compute resources of a branch and runs a benchmark query using `pg`, a [Node.JS Postgres client](https://github.com/brianc/node-postgres). The benchmark takes between two and three minutes. An example of a branch using the TimescaleDB extension would be as follows:
 
 ```json
 {
@@ -89,7 +91,12 @@ The benchmark itself is a Lambda function that suspends the compute resources of
 After the benchmark, the results are stored in the main branch in the following table:
 
 ```sql
-CREATE TABLE IF NOT EXISTS benchmarks (id TEXT, duration INT, ts TIMESTAMP);
+CREATE TABLE IF NOT EXISTS benchmarks (
+    id TEXT, -- Benchmark branch ID.
+    initial_timestamp TIMESTAMP, -- Useful to group benchmarks from the same run.
+    duration INT, -- Benchmark duration expressed in ms. 
+    ts TIMESTAMP -- Benchmark timestamp.
+);
 ```
 
 ## Application
