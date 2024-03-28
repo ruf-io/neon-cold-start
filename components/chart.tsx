@@ -128,7 +128,7 @@ const Chart = (props: Props) => {
             interaction: {
                 mode: 'nearest',
                 intersect: false,
-                axis: 'x'
+                axis: 'x',
             },
             scales: {
                 y: {
