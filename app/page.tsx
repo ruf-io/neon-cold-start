@@ -17,7 +17,7 @@ export default function Home() {
                         <a className="link link-info" href="https://neon.tech">Neon Serverless Postgres</a> databases can autosuspend when idle and <em>cold start</em> automatically upon receiving a connection. How fast are cold starts?
                     </div>
                 </div>
-                    <a className="" href="https://github.com/ruf-io/neon-cold-start" target="_blank" className="group">
+                    <a href="https://github.com/ruf-io/neon-cold-start" target="_blank" className="group">
                         <svg width="50" height="49" viewBox="0 0 50 49" fill="none" xmlns="http://www.w3.org/2000/svg">
                             <circle cx="24.7551" cy="25.2449" r="23.7551" className="fill-base-100" />
                             <g clip-path="url(#clip0_45_5588)">
