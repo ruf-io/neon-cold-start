@@ -59,11 +59,11 @@ export default function Analytics() {
             }
         };
     }, [benchmark]);
-    const { avg, p99, standardDeviation, sampleSize } = useMemo(() => {
+    const { avg, p99, stdDev, sampleSize } = useMemo(() => {
         return {
             avg: benchmark?.summary.avg,
             p99: benchmark?.summary.p99,
-            standardDeviation: benchmark?.summary.standardDeviation,
+            stdDev: benchmark?.summary.stdDev,
             sampleSize: benchmark?.summary.sampleSize,
         }
     }, [benchmark]);
@@ -112,7 +112,7 @@ export default function Analytics() {
                             <Stat stat={formatFloatToStatString(p99)} title="P99" key="P99" desc="milliseconds" showTimer={true} help="99th percentile across all variations, all runs" />
                         </div>
                         <div className="flex gap-8">
-                            <Stat stat={formatFloatToStatString(standardDeviation)} title="Standard Deviation" key="standardDeviation" desc="milliseconds" />
+                            <Stat stat={formatFloatToStatString(stdDev)} title="Standard Deviation" key="stdDev" desc="milliseconds" />
                             <Stat stat={formatFloatToStatString(sampleSize)} title="Test Runs" key="ColdStarts" desc="total cold starts" />
                         </div>
                     </div>
@@ -120,6 +120,7 @@ export default function Analytics() {
                         <Chart
                             avg={avg}
                             p99={p99}
+                            stdDev={stdDev}
                             chartData={{ datasets: [summaryDataset] }}
                         />
                     </div>

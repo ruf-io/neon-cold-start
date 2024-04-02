@@ -19,9 +19,8 @@ ChartJS.register(annotationPlugin);
 
 interface Props {
     avg?: number;
-    max?: number;
-    min?: number;
     p99?: number;
+    stdDev?: number;
     minimalistic?: boolean;
     chartData: ChartData<"line">;
     display?: Display;
@@ -48,7 +47,7 @@ export const statIdToDisplay = (str?: string) => {
 };
 
 const Chart = (props: Props) => {
-    const { avg, max, min, p99, chartData, display, minimalistic } = props;
+    const { avg, p99, stdDev, chartData, display, minimalistic } = props;
     const ref = useRef<ChartJS<"line">>(null);
 
     return (
@@ -99,8 +98,14 @@ const Chart = (props: Props) => {
                                     size: 11
                                 }
                             }
-                        }
-                    })
+                        },
+                        stddev: {type: 'box',
+                        yMin: avg && stdDev ? avg - stdDev : 0,
+                        yMax: avg && stdDev ? avg + stdDev : 0,
+                        borderColor: "#00000000",
+                        backgroundColor: themeColors['base-content'] + "11"}
+                        
+                })
                 }
             },
             interaction: {
