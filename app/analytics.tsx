@@ -96,7 +96,7 @@ export default function Analytics() {
                 </div>
             }
             <div className={`${(loading || error) ? "invisible" : "visible"}`}>
-                <div className='flex w-full'>
+                <div className='flex w-full flex-wrap'>
                     <div className='mb-10 flex-col'>
                         <h2 className="font-bold text-3xl">Benchmark Summary</h2>
                         <p className="text-base-content/70">Cold start times summarized across all tests and variants.</p>
@@ -105,7 +105,7 @@ export default function Analytics() {
                         <DateFilter filter={filter} handleChange={onFilterChange} />
                     </div>
                 </div>
-                <div className="flex gap-8 items-center justify-center">
+                <div className="flex flex-col lg:flex-row gap-8 items-center justify-center">
                     <div className="flex flex-col gap-8">
                         <div className="flex gap-8">
                             <Stat stat={formatFloatToStatString(avg)} title="Average" key="Average" desc="milliseconds" showTimer={true} help="Average across all variations, all runs" />
@@ -116,7 +116,7 @@ export default function Analytics() {
                             <Stat stat={formatFloatToStatString(sampleSize)} title="Test Runs" key="ColdStarts" desc="total cold starts" />
                         </div>
                     </div>
-                    <div className="h-80 flex-1">
+                    <div className="h-80 flex-1 w-full lg:w-auto">
                         <Chart
                             avg={avg}
                             p99={p99}
@@ -129,7 +129,7 @@ export default function Analytics() {
             <div>
                 <h3 className="text-2xl font-bold">Detailed Stats by Database Variant</h3>
                 <p className='text-base-content/70'>Cold start times for specific variations of Neon databases.</p>
-                <div className='grid grid-cols-2 gap-6 pt-10'>
+                <div className='grid grid-cols-1 lg:grid-cols-2 gap-6 pt-10'>
                     {
                         benchmark && benchmark.branches.map((branchBenchmark, i) => (
                             <ChartStat key={branchBenchmark.name} branchBenchmark={branchBenchmark} display={display} dataset={branchDatasets[i]} />
