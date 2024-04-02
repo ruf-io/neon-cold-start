@@ -17,7 +17,7 @@ const ChartStat = (props: Props) => {
         name,
         avg,
         p99,
-        standardDeviation,
+        stdDev,
         sampleSize
     } = branchBenchmark;
 
@@ -51,7 +51,7 @@ const ChartStat = (props: Props) => {
       <tr>
         <td>{formatFloatToStatString(avg)}ms</td>
         <td>{formatFloatToStatString(p99)}ms</td>
-        <td>{formatFloatToStatString(standardDeviation)}ms</td>
+        <td>{formatFloatToStatString(stdDev)}ms</td>
         <td>{formatFloatToStatString(sampleSize)}</td>
       </tr>
     </tbody>
