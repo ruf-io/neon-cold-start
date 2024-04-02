@@ -1,6 +1,16 @@
 {
     "branches": [
         {
+            "name": "Pure Cold Start",
+            "description": "Uses `SELECT 1` as the query - no data is scanned.",
+            "setupQueries": [
+                "CREATE TABLE IF NOT EXISTS series (serie_num TEXT);",
+                "INSERT INTO series SELECT repeat('W', 3000) from generate_series(0, 9000);",
+                "CREATE INDEX IF NOT EXISTS series_idx ON series (serie_num);"
+            ],
+            "benchmarkQuery": "SELECT 1;"
+        },
+        {
             "name": "100 Megabytes",
             "description": "Contains around 100MB of data stored.",
             "setupQueries": [

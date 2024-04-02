@@ -9,7 +9,7 @@ const configFile = JSON.parse(readFileSync(__dirname + "/config.json", "utf-8"))
  * Benchmark database
  */
 const API_KEY = process.env["API_KEY"];
-const PROJECT_NAME = process.env["PROJECT_NAME"] || "Benchmark";
+const PROJECT_NAME = process.env["PROJECT_NAME"] || "ColdStartBenchmarks";
 const DATABASE_NAME = process.env["DATABASE_NAME"] || "neondb";
 const ROLE_NAME = process.env["ROLE_NAME"] || "BenchmarkRole";
 const MAIN_BRANCH_NAME = process.env["BENCHMARK_BRANCH_NAME"] || "main";

@@ -46,8 +46,8 @@ const DateFilter = (props: Props) => {
     }, [handleChange]);
 
     return (
-        <div className='ml-auto text-gray-400'>
-            <button onClick={onClick} id="dayFilterButton" className={`${filter === Filter.Day ? "text-white" : ""}`}>D</button> / <button onClick={onClick} id="weekFilterButton" className={`${filter === Filter.Week ? "text-white" : ""}`}>W</button> / <button onClick={onClick} id="monthFilterButton" className={`${filter === Filter.Month ? "text-white" : ""}`}>M</button>
+        <div className='ml-auto text-base-content'>
+            <button onClick={onClick} id="dayFilterButton" className={`${filter === Filter.Day ? "" : "text-base-content/50"}`}>D</button> / <button onClick={onClick} id="weekFilterButton" className={`${filter === Filter.Week ? "" : "text-base-content/50"}`}>W</button> / <button onClick={onClick} id="monthFilterButton" className={`${filter === Filter.Month ? "" : "text-base-content/50"}`}>M</button>
         </div>
     );
 };

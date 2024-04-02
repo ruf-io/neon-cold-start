@@ -1,56 +1,8 @@
 @tailwind base;
-
-@layer base {
-    h1 {
-        @apply text-2xl mb-4;
-    }
-
-    h2 {
-        @apply text-xl mb-4;
-    }
-
-    h3 {
-        @apply text-lg;
-    }
-
-    a {
-        @apply text-blue-600 underline;
-    }
-
-    ol,
-    ul {
-        @apply list-disc list-inside marker:text-white;
-
-        /* ul {
-            list-style-type: circle !important;
-            margin-left: 2rem
-        } */
-    }
-}
-
 @tailwind components;
 @tailwind utilities;
 
-:root {
-    --foreground-rgb: 0, 0, 0;
-    --background-start-rgb: 214, 219, 220;
-    --background-end-rgb: 255, 255, 255;
-}
-
-body {
-    color: #FFFFFF;
-    font-family: 'IBM Plex Sans Condensed';
-    background: #1A1A1A;
-    /* background-color: #e5e5f7; */
-    opacity: 0.8;
-    background-image: radial-gradient(#94a3b815 0.5px, #1A1A1A 0.5px);
-    background-size: 10px 10px;
-    background-position: right;
-    background-repeat: repeat;
-}
-
-/* @layer utilities {
-    .text-balance {
-        text-wrap: balance;
-    }
-} */
+::selection {
+    background: oklch(var(--a));
+    color: oklch(var(--ac));
+  }
