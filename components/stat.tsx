@@ -1,42 +1,32 @@
-import React, { MouseEventHandler } from "react";
-
-interface Percentage {
-    positive?: boolean;
-    amount: number;
-}
-
 interface Props {
     title: string;
-    selected?: boolean;
     stat?: string | number;
     help?: string;
-    percentage?: Percentage;
-    onHover?: (hover: boolean, id?: string,) => void;
-    onClick?: MouseEventHandler<HTMLDivElement>;
-    id?: string;
+    desc?: string;
+    showTimer?: boolean;
 }
 
 export const formatFloatToStatString = (float?: number) => {
-    return float ? `${(float / 1000).toPrecision(3)}s` : "-";
+    return float ? `${Math.round(float)}` : "-";
 }
 
 const Stat = (props: Props) => {
-    const { id, selected, stat, title, onHover, onClick } = props;
+    const { stat, title, help, desc, showTimer=false } = props;
 
     return (
         <div
-            onMouseEnter={() => onHover && onHover(true, id)}
-            onMouseLeave={() => onHover && onHover(false, id)}
-            id={id}
-            onClick={onClick}
-            className={`
-                ${onClick ? "cursor-pointer" : ""}
-                ${selected ? "border-gray-700" : "border-gray-900"}
-                hover:border-gray-700 border  rounded-md p-4 w-56
-            `}
+            className="stat"
         >
-            <p className="text-sm text-gray-600 font-light mb-5 text-center">{title}</p>
-            <p className="text-5xl mt-5 truncate text-center">{stat}</p>
+            {showTimer && (
+            <div className="stat-figure text-primary">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" className="inline-block w-8 h-8 stroke-current"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"></path></svg>
+            </div>)}
+            <h3 className="stat-title" >
+                {title}
+                {help && (<span className="tooltip translate-x-1 translate-y-1" data-tip={help}><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" className="stroke-current shrink-0 w-5 h-5"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg></span>)}
+            </h3>
+            <p className="stat-value">{stat}</p>
+            <div className="stat-desc">{desc}</div>
         </div>
     )
 }
