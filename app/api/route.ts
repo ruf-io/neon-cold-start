@@ -16,7 +16,7 @@ function summaryRowsSql(minDate: Date, stride: string) {
                 date_bin('${stride}'::interval, initial_timestamp, '2024-03-01'::timestamp) as initial_timestamp,
                 AVG(duration) as avg_duration
             FROM benchmarks
-            WHERE ts > '${minDate.toISOString()}'
+            WHERE ts > '${minDate.toISOString()}' AND driver = 'node-postgres'
             GROUP BY initial_timestamp
         )
         SELECT
@@ -42,7 +42,7 @@ function branchRowsSql(minDate: Date, stride: string) {
                 date_bin('${stride}'::interval, initial_timestamp, '2024-03-01'::timestamp) as initial_timestamp,
                 AVG(duration) as avg_duration
             FROM benchmarks
-            WHERE initial_timestamp > '${minDate.toISOString()}'
+            WHERE initial_timestamp > '${minDate.toISOString()}' AND driver = 'node-postgres'
             GROUP BY id, initial_timestamp
         )
         SELECT

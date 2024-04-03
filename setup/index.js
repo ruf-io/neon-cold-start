@@ -1,9 +1,29 @@
-const { Pool } = require("pg");
+const PgPool = require("pg").Pool;
+const { neonConfig, Pool: NeonPool } = require("@neondatabase/serverless");
 const { createApiClient } = require("@neondatabase/api-client");
 const { readFileSync } = require("fs");
+const { randomUUID } = require("crypto");
+const { default: PQueue } = require('p-queue');
+
+neonConfig.webSocketConstructor = require('ws')
 
 require('dotenv').config();
 const configFile = JSON.parse(readFileSync(__dirname + "/config.json", "utf-8"));
+
+/**
+ * Drivers
+ * @type {{NODE_POSTGRES: {name: string, Pool: PgPool}, NEON_SERVERLESS: {name: string, Pool: NeonPool}}}
+ */
+const DRIVERS = {
+    NODE_POSTGRES: {
+        name: "node-postgres",
+        Pool: PgPool,
+    },
+    NEON_SERVERLESS: {
+        name: "@neondatabase/serverless",
+        Pool: NeonPool,
+    }
+}
 
 /**
  * Benchmark database
@@ -46,7 +66,7 @@ const fetchAllItems = async (apiFunction, baseParams, itemKey) => {
                 continueFetching = false;
             }
         } catch (err) {
-            console.error(err);
+            log(err);
         }
     }
 
@@ -106,12 +126,12 @@ const getProject = async (apiClient) => {
  * @returns {Promise<Object>} A promise that resolves to an object containing each branch configuration.
  */
 const getConfig = async (apiClient, projectId) => {
-    console.log("Reading benchmark config.");
+    log("Reading benchmark config.");
     const configMap = {};
     configFile.branches.forEach(branch => { configMap[branch.name.replace(/\s+/g, '_').toLowerCase()] = branch; });
 
     // Get branches IDs.
-    console.log("Retrieving branches data.");
+    log("Retrieving branches data.");
     const { data: listBranchesData } = await apiClient.listProjectBranches(projectId);
     const { branches } = listBranchesData;
     // console.log("Branches: ", branches);
@@ -154,8 +174,7 @@ const waitEndpointIdle = async (apiClient, projectId, endpointId) => {
         const endpoint = await apiClient.getProjectEndpoint(projectId, endpointId);
         idle = endpoint.data.endpoint.current_state === "idle";
 
-        // Sleep.
-        await new Promise((res) => { setTimeout(res, 500) });
+        await sleep(500)
     }
 }
 
@@ -184,21 +203,28 @@ const waitProjectOpFinished = async (apiClient, projectId) => {
  * @param {Object} apiClient The API client used to interact with Neon.
  * @param {string} projectId The ID of the project for which the endpoint will be suspended.
  * @param {string} endpointId The ID of the endpoint to be suspended within the specified project.
+ * @param {number} sleepTimeMs The time to sleep after suspending the endpoint (default: 60000ms).
  * @returns {Promise<void>} A promise that resolves once the endpoint has been successfully suspended.
  */
-const suspendProjectEndpoint = async (apiClient, projectId, endpointId) => {
-    console.log("Endpoint ID:", endpointId);
+const suspendProjectEndpoint = async (apiClient, projectId, endpointId, sleepTimeMs = 60000) => {
+    log(`Suspend endpoint with ID ${endpointId}`);
     let suspended = false;
     while (!suspended) {
         try {
             await apiClient.suspendProjectEndpoint(projectId, endpointId);
             suspended = true;
+            log(`Endpoint suspended: ${endpointId}`);
         } catch (err) {
-            console.error("Error suspending project. Trying again in 500ms.")
-            // Sleep.
-            await new Promise((res) => { setTimeout(res, 500) });
+            log(`Error suspending endpoint ${endpointId}. Trying again in 5000ms.`)
+            log(`Error: ${err}`)
+            await sleep(5000);
         }
     }
+
+    // Sleep for the given time to ensure the endpoint is idle and avoid a
+    // prolonged cold start when the endpoint is queried again 
+    log(`Sleeping for ${sleepTimeMs / 1000} seconds to ensure the endpoint ${endpointId} is idle.`)
+    await sleep(sleepTimeMs);
 }
 
 /**
@@ -207,13 +233,22 @@ const suspendProjectEndpoint = async (apiClient, projectId, endpointId) => {
  * The project's endpoint is suspended again after the benchmarking is completed.
  * 
  * @param {Object} project An object containing the project's details.
- * @param {Object} config An object containing the branchs' configuration.
  * @param {Object} apiClient The API client used to communicate with the backend services.
+ * @param {Object} driver The driver used to connect to the database.
+ * @param {String} runId An identifier for the current benchmark run.
  * @returns {Promise<void>} A promise that resolves when the benchmarking process is complete,
  * indicating that no value is returned but the side effects (benchmarking the project) have been completed.
  */
-const benchmarkProject = async ({ id: projectId }, config, apiClient) => {
-    console.log("Starting benchmark.");
+const benchmarkProject = async ({ id: projectId }, apiClient, driver, runId) => {
+    const benchQueue = new PQueue({ concurrency: 1 });
+    log(`Starting benchmark for project ${projectId} using driver ${driver.name}.`);
+
+    // Use the Pool constructor from the given driver to create a connection pool
+    const Pool = driver.Pool;
+
+    // Get the project/branch configuration and details
+    const config = await getConfig(apiClient, projectId);
+
     await waitProjectOpFinished(apiClient, projectId);
     const mainConfig = config[MAIN_BRANCH_NAME];
     const mainPool = new Pool({
@@ -223,32 +258,33 @@ const benchmarkProject = async ({ id: projectId }, config, apiClient) => {
         database: DATABASE_NAME,
         ssl: true,
     });
-    const insertPromises = [];
 
     // The initial time is used to identify and group the benchmarks as a summary.
     const initialTime = new Date();
 
-    for (const branchName of Object.keys(config)) {
-        const {
-            endpoint: benchmarkEndpoint,
-            password: benchmarkRolePassword,
-            benchmarkQuery,
-            id: branchId
-        } = config[branchName];
+    Object.keys(config).map(async (branchName) => {
+        benchQueue.add(async () => {
+            if (branchName === "main") {
+                // Skip the main branch.
+                return;
+            }
 
-        // Main branch doesn't need a benchmark.
-        if (branchName === "main") {
-            continue;
-        } else {
-            console.log("Benchmarking branch: ", branchName);
-
+            const {
+                id: branchId,
+                endpoint: benchmarkEndpoint,
+                password: benchmarkRolePassword,
+                benchmarkQuery
+            } = config[branchName];
+    
+            
             // Ensure the endpoint is idle (suspended.)
             if (benchmarkEndpoint.current_state !== "idle") {
-                console.log("Benchmark endpoint was not idle. Suspending endpoint.");
                 await suspendProjectEndpoint(apiClient, projectId, benchmarkEndpoint.id);
                 await waitEndpointIdle(apiClient, projectId, benchmarkEndpoint.id);
             }
-
+            
+            log(`Benchmarking branch ${branchName} with endpoint ${benchmarkEndpoint.id} with driver ${driver.name}.`)
+    
             // Run benchmark
             const before = new Date();
             const benchmarkPool = new Pool({
@@ -258,31 +294,36 @@ const benchmarkProject = async ({ id: projectId }, config, apiClient) => {
                 database: DATABASE_NAME,
                 ssl: true,
             });
-
+    
             await benchmarkPool.query(benchmarkQuery);
             const after = new Date();
             const benchmarkValue = after.getTime() - before.getTime();
-            benchmarkPool.end();
+            await benchmarkPool.end();
+            
+            log(`Benchmark complete ${branchName} / ${benchmarkEndpoint.id} / ${driver.name}: ${benchmarkValue}ms.`)
+    
+            await mainPool.query(
+                "INSERT INTO benchmarks VALUES ($1, $2, $3, $4, $5, $6)",
+                [branchId, initialTime, benchmarkValue, new Date(), driver.name, runId]
+            )
+    
+            await suspendProjectEndpoint(apiClient, projectId, benchmarkEndpoint.id, 5000);
+        });
+    })
 
-            // Store benchmark
-            insertPromises.push(
-                mainPool.query(
-                    "INSERT INTO benchmarks VALUES ($1, $2, $3, now())",
-                    [branchId, initialTime, benchmarkValue]
-                )
-            );
+    await benchQueue.onIdle();
 
-            // Save computing time
-            await waitProjectOpFinished(apiClient, projectId);
-            await suspendProjectEndpoint(apiClient, projectId, benchmarkEndpoint.id);
-        }
+    log(`Finished benchmarking project using driver ${driver.name}.`)
 
-        // Sleep 30 seconds before the next benchmark
-        await new Promise((res, ) => setTimeout(() => res(), 30000));
-    }
+    await mainPool.end();
+}
 
-    await Promise.all(insertPromises);
-    mainPool.end();
+function log (str) {
+    console.log(`${new Date().toJSON()}: ${str}`);
+}
+
+function sleep (time) {
+    return new Promise((resolve) => setTimeout(resolve, time));
 }
 
 exports.handler = async () => {
@@ -294,6 +335,7 @@ exports.handler = async () => {
         apiKey: API_KEY,
     });
     const project = await getProject(apiClient);
-    const config = await getConfig(apiClient, project.id);
-    await benchmarkProject(project, config, apiClient);
+    const runId = randomUUID()
+    await benchmarkProject(project, apiClient, DRIVERS.NODE_POSTGRES, runId);
+    await benchmarkProject(project, apiClient, DRIVERS.NEON_SERVERLESS, runId);
 }
