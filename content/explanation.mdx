@@ -1,7 +1,3 @@
-## About Neon Cold Starts
-
-A cold start in Neon begins when a database with a supended compute endpoint receives a connection + SQL query. Neon starts the database compute, processes the query, and serves the response.
-
 ### What is Neon?
 
 Neon is [serverless Postgres](https://neon.tech): Standard PostgreSQL in a fully-managed cloud platform that separates storage and compute. This unlocks features like autoscaling, branching, and **scale to zero**.
@@ -29,13 +25,38 @@ Look at the cold start times documented above and decide: in what scenarios is a
 
 That depends primarily on two factors: (1) Configured duration of inactivity required to suspend compute, and (2) Pattern of activity on the database.
 
-[WIDGET LETTING A USER PLAY WITH DURATION VS COLD START FREQUENCY]
-
+<div className="card">
+  <div className="card-body ">
+  <div>
+    <h2 className="card-title">Card title!</h2>
+    <div className="form-control">
+        <label className="label cursor-pointer">
+            <span className="label-text">Requests per Day</span> 
+            <input type="range" min="0" max="100000000" className="range range-primary" />
+        </label>
+    </div>
+    <div className="form-control">
+        <label className="label cursor-pointer">
+            <span className="label-text">Active Business Hrs</span> 
+            <input type="checkbox" className="toggle" />
+            <span className="label-text">24/7</span>
+        </label>
+    </div>
+    <div className="form-control">
+        <label className="label cursor-pointer">
+            <span className="label-text">Suspend After</span> 
+            <input type="range" min="0" max="100" className="range" />
+        </label>
+    </div>
+    </div>
+    <div className="divider divider-horizontal"></div>
+    <div>Results</div>
+    </div>
+</div>
 
 ### How do cold starts affect usability?
 
 For end-users, a cold start will add _[AVG Cold Start Time]_ millisecond delay to the response time of the first query to hit a suspended compute. In a web application that may result in part or all of a page taking _[AVG Cold Start Time]_ milliseconds longer to render.
-
 
 ## Benchmark methodology
 
@@ -52,17 +73,17 @@ All code for the benchmark and display of results is available [on GitHub](https
 
 ```javascript
 // Run benchmark
-const before = new Date();  // <-- Start Timer Here
+const before = new Date(); // <-- Start Timer Here
 const benchmarkPool = new Pool({
-    host: benchmarkEndpoint.host,
-    password: benchmarkRolePassword,
-    user: ROLE_NAME,
-    database: DATABASE_NAME,
-    ssl: true,
+  host: benchmarkEndpoint.host,
+  password: benchmarkRolePassword,
+  user: ROLE_NAME,
+  database: DATABASE_NAME,
+  ssl: true,
 });
 
 await benchmarkPool.query(benchmarkQuery);
-const after = new Date();  // <-- End Timer Here
+const after = new Date(); // <-- End Timer Here
 const benchmarkValue = after.getTime() - before.getTime();
 benchmarkPool.end();
 ```
@@ -81,4 +102,11 @@ benchmarkPool.end();
     <dd>PostgreSQL 16</dd>
     <dt>Postgres Driver:</dt>
     <dd><a href="https://node-postgres.com/">node-postgres</a></dd>
+
 </dl>
+
+
+
+## Try Running the Benchmarks Yourself
+
+This repo is configured to make it easy 
