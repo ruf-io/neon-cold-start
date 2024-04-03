@@ -101,7 +101,7 @@ export default function Analytics() {
                         <h2 className="font-bold text-3xl">Benchmark Summary</h2>
                         <p className="text-base-content/70">Cold start times summarized across all tests and variants.</p>
                     </div>
-                    <div className='ml-auto order-3'>
+                    <div className='ml-auto order-3 hidden'>
                         <DateFilter filter={filter} handleChange={onFilterChange} />
                     </div>
                 </div>
