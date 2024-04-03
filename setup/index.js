@@ -223,7 +223,7 @@ const suspendProjectEndpoint = async (apiClient, projectId, endpointId, sleepTim
 
     // Sleep for the given time to ensure the endpoint is idle and avoid a
     // prolonged cold start when the endpoint is queried again 
-    log(`Sleeping for ${sleepTimeMs / 1000} seconds to ensure the endpoint ${endpointId} is idle.`)
+    log(`Sleeping for ${sleepTimeMs / 1000} seconds to give the endpoint ${endpointId} time to idle.`)
     await sleep(sleepTimeMs);
 }
 
@@ -337,5 +337,7 @@ exports.handler = async () => {
     const project = await getProject(apiClient);
     const runId = randomUUID()
     await benchmarkProject(project, apiClient, DRIVERS.NODE_POSTGRES, runId);
+    log('Waiting 1 minute before testing next driver...')
+    await sleep(60 * 1000)
     await benchmarkProject(project, apiClient, DRIVERS.NEON_SERVERLESS, runId);
 }
