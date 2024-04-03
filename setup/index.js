@@ -251,7 +251,7 @@ const benchmarkProject = async ({ id: projectId }, apiClient, driver, runId) => 
 
     await waitProjectOpFinished(apiClient, projectId);
     const mainConfig = config[MAIN_BRANCH_NAME];
-    const mainPool = new Pool({
+    const mainPool = new PgPool({
         host: mainConfig.endpoint.host,
         password: mainConfig.password,
         user: ROLE_NAME,
@@ -262,7 +262,7 @@ const benchmarkProject = async ({ id: projectId }, apiClient, driver, runId) => 
     // The initial time is used to identify and group the benchmarks as a summary.
     const initialTime = new Date();
 
-    Object.keys(config).map(async (branchName) => {
+    Object.keys(config).forEach(async (branchName) => {
         benchQueue.add(async () => {
             if (branchName === "main") {
                 // Skip the main branch.
