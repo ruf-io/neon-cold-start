@@ -9,7 +9,7 @@ But the part that takes _"we turned the database off for you"_ from bug to featu
 
 #### How Neon optimizes cold start speed
 
-Neon keeps a certain amount of empty computes "pre-warmed" in compute pools to ensure that when a user's database needs to start, most of the work is done already. More technical details are available in the article: [cold starts just got hot](https://neon.tech/blog/cold-starts-just-got-hot?ref=a).
+Neon keeps a certain amount of empty computes "pre-warmed" in compute pools to ensure that when a user's database needs to start, most of the work is done already. More technical details are available in the article: [cold starts just got hot](https://neon.tech/blog/cold-starts-just-got-hot).
 
 ## When to use scale-to-zero databases
 
@@ -36,7 +36,6 @@ That depends on two factors: (1) how long you've configured the compute to wait 
 
 Imagine a project configured to autosuspend after five minutes of inactivity (the default), the number of cold starts experienced in a day is equal to the number of gaps in activity greater than five minutes.
 
-[GRAPHIC]
 
 ### How do cold starts affect usability?
 
@@ -53,7 +52,7 @@ And, the optimizations made in the serverless driver to reduce the back-and-fort
 
 ### Are cold starts longer for branches?
 
-No. [Database branches](https://neon.tech/docs/introduction/branching?ref=andy) are a core primitive in Neon.
+No. [Database branches](https://neon.tech/docs/introduction/branching) are a core primitive in Neon.
 They work a lot like git branches:
 You can create a branch of your database at its current state or any other point in its history.
 
@@ -77,7 +76,7 @@ The [Extensions benchmark](#Extensions) above loads 60 Postgres extensions, you 
 
 ## Benchmark methodology
 
-To gather real-world cold start times, the benchmark uses a Neon project with a separate [database branch](https://neon.tech/docs/introduction/branching?ref=a) for each of the above variants. A [serverless function](https://github.com/ruf-io/neon-cold-start/blob/main/setup/index.js) executes the following steps every 30 minutes:
+To gather real-world cold start times, the benchmark uses a Neon project with a separate [database branch](https://neon.tech/docs/introduction/branching) for each of the above variants. A [serverless function](https://github.com/ruf-io/neon-cold-start/blob/main/setup/index.js) executes the following steps every 30 minutes:
 
 1. Check that the database is autosuspended
 2. Connect and execute a SQL query on the database, forcing it to start.
@@ -133,7 +132,7 @@ benchmarkPool.end();
 
 ## Try It Yourself
 
-Sign up for the [free Neon account](https://neon.tech?ref=andy), clone the repo for this benchmark and website: [Neon Cold Start Repo](https://github.com/ruf-io/neon-cold-start) and you can run and modify the benchmarks yourself.
+Sign up for the [free Neon account](https://neon.tech), clone the repo for this benchmark and website: [Neon Cold Start Repo](https://github.com/ruf-io/neon-cold-start) and you can run and modify the benchmarks yourself.
 Follow the developer docs in the repo to get started.
 
 Keep in mind that benchmarks run locally will include the roundtrip latency from your device to AWS datacenter. The cold starts from this page are deployed in a Lambda in the same AWS region as the Neon database.
