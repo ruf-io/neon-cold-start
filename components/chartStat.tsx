@@ -1,21 +1,20 @@
 import { BranchBenchmark } from "@/hooks";
 import { ChartDataset } from "chart.js";
 import React from "react";
-import Chart, { Display } from "./chart";
+import Chart from "./chart";
 import { formatFloatToStatString } from "./stat";
 
 interface Props {
     branchBenchmark: BranchBenchmark;
-    display?: Display;
     dataset: ChartDataset<"line">;
 }
 
 const ChartStat = (props: Props) => {
-    const { branchBenchmark, display, dataset } = props;
+    const { branchBenchmark, dataset } = props;
     const {
         description,
         name,
-        avg,
+        p50,
         p99,
         stdDev,
         sampleSize
@@ -34,9 +33,8 @@ const ChartStat = (props: Props) => {
             </div>
             <div className='h-12 mt-4'>
                 <Chart
-                    avg={avg}
+                    p50={p50}
                     chartData={{ datasets: [dataset] }}
-                    display={display}
                     minimalistic={true}
                 />
             </div>
@@ -44,7 +42,7 @@ const ChartStat = (props: Props) => {
   <table className="table">
     <thead>
       <tr>
-        <th>Avg</th>
+        <th>p50</th>
         <th>P99</th>
         <th>Std Dev</th>
         <th>Runs</th>
@@ -52,7 +50,7 @@ const ChartStat = (props: Props) => {
     </thead>
     <tbody>
       <tr>
-        <td>{formatFloatToStatString(avg)}ms</td>
+        <td>{formatFloatToStatString(p50)}ms</td>
         <td>{formatFloatToStatString(p99)}ms</td>
         <td>{formatFloatToStatString(stdDev)}ms</td>
         <td>{formatFloatToStatString(sampleSize)}</td>

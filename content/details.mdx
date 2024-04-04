@@ -13,7 +13,7 @@ Neon keeps a certain amount of empty computes "pre-warmed" in compute pools to e
 
 ## When to use scale-to-zero databases
 
-Look at the cold start times documented above and decide: _In what scenarios is the occasional `575ms` delay acceptable?_
+Look at the cold start times documented above and decide: _In what scenarios is the occasional `~550ms` delay acceptable?_
 
 The answer may depend on the specifics of your project, but here are some example scenarios where many users find scale to zero useful:
 
@@ -39,7 +39,7 @@ Imagine a project configured to autosuspend after five minutes of inactivity (th
 
 ### How do cold starts affect usability?
 
-For end-users, a cold start will add _[AVG Cold Start Time]_ millisecond delay to the response time of the first query to hit a suspended compute. In a web application that may result in part or all of a page taking _[AVG Cold Start Time]_ milliseconds longer to render.
+For end-users, a cold start will add `~550ms` delay to the response time of the first query to hit a suspended compute. In a web application that may result in part or all of a page taking `~550ms` longer to render.
 
 ### Does the Serverless Driver affect cold starts?
 
@@ -71,6 +71,11 @@ The [500 MB](#500MB) above cold starts a database with 500MB of data, you can co
 ### Do extensions affect cold start times?
 
 The [Extensions benchmark](#Extensions) above loads 60 Postgres extensions, you can compare the times to the rest of the benchmarks to determine how use of extensions affect load times.
+
+### What about latency on active databases?
+
+When the compute endpoint is already active, query latency is similar to any other Postgres database.
+Response times will vary based on the network latency and query complexity, but you can expect a simple query from a client in the same region to complete in `~TBDms`.
 
 ---
 

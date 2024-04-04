@@ -21,9 +21,9 @@ export interface BranchBenchmark {
     max: number;
     min: number;
     sum: number;
-    avg: number;
-    stdDev: number;
+    p50: number;
     p99: number;
+    stdDev: number;
     sampleSize: number;
     dataPoints: Array<Point>;
     description: string;
@@ -61,7 +61,7 @@ const initBenchmark = (
                 min: Number.MAX_SAFE_INTEGER,
                 max: Number.MIN_SAFE_INTEGER,
                 sum: 0,
-                avg: 0,
+                p50: 0,
                 p99: 0,
                 stdDev: 0,
                 sampleSize: 0,
@@ -76,7 +76,7 @@ const initBenchmark = (
         min: Number.MAX_SAFE_INTEGER,
         max: Number.MIN_SAFE_INTEGER,
         sum: 0,
-        avg: 0,
+        p50: 0,
         p99: 0,
         stdDev: 0,
         sampleSize: 0,
@@ -123,12 +123,12 @@ const useBenchmarks = (filter: Filter) => {
 
                 const branches: Array<BranchBenchmark> = Object.keys(branchesRecord).map(x => ({
                     ...branchesRecord[x],
-                    avg: branchesRecord[x].sum / branchesRecord[x].dataPoints.length,
+                    p50: quantile(branchesRecord[x].dataPoints.map(x => x.y), 0.5),
                     stdDev: standardDeviation(branchesRecord[x].dataPoints.map(x => x.y)),
                     p99: quantile(branchesRecord[x].dataPoints.map(x => x.y), 0.99),
                     sampleSize: branchesRecord[x].dataPoints.length,
                 }));
-                summaryBenchmark.avg = summaryBenchmark.sum / summaryBenchmark.dataPoints.length;
+                summaryBenchmark.p50 = quantile(summaryBenchmark.dataPoints.map(x => x.y), 0.5);
                 summaryBenchmark.stdDev = standardDeviation(summaryBenchmark.dataPoints.map(x => x.y));
                 summaryBenchmark.p99 = quantile(summaryBenchmark.dataPoints.map(x => x.y), 0.99);
                 summaryBenchmark.sampleSize = summaryBenchmark.dataPoints.length;

@@ -14,40 +14,21 @@ if (typeof window !== 'undefined' && window.matchMedia && window.matchMedia('(pr
 }
 export const themeColors = tailwindConfig.daisyui.themes[0][currentTheme];
 
+const doubleZero = (num: number) => num < 10 ? `0${num}` : num;
+
 ChartJS.register(...registerables);
 ChartJS.register(annotationPlugin);
 
 interface Props {
-    avg?: number;
+    p50?: number;
     p99?: number;
     stdDev?: number;
     minimalistic?: boolean;
     chartData: ChartData<"line">;
-    display?: Display;
 }
-
-export enum Display {
-    Average,
-    Maximum,
-    Minimum,
-}
-
-export const statIdToDisplay = (str?: string) => {
-    switch (str) {
-        case "avgStat":
-            return Display.Average;
-        case "maxStat":
-            return Display.Maximum;
-        case "minStat":
-            return Display.Minimum;
-
-        default:
-            break;
-    }
-};
 
 const Chart = (props: Props) => {
-    const { avg, p99, stdDev, chartData, display, minimalistic } = props;
+    const { p50, p99, stdDev, chartData, minimalistic } = props;
     const ref = useRef<ChartJS<"line">>(null);
 
     return (
@@ -59,19 +40,18 @@ const Chart = (props: Props) => {
                 legend: { display: false },
                 annotation: {
                     annotations: ( minimalistic ? {} : {
-                        average: {
+                        p50: {
                             type: 'line',
-                            yMin: avg,
-                            yMax: avg,
+                            yMin: p50,
+                            yMax: p50,
                             borderColor: themeColors['base-content'] + "AA",
                             borderWidth: 1,
                             borderDash: [3, 3],
                             label: {
-                                content: `AVG: ${avg ? Math.round(avg) : '-'}ms`,
+                                content: `P50: ${p50 ? Math.round(p50) : '-'}ms`,
                                 display: true,
                                 position: 'start',
-                                backgroundColor: "#FFFFFF00",
-                                yAdjust: -10,
+                                backgroundColor: "#FFFFFF",
                                 color: themeColors['base-content'],
                                 font: {
                                     weight: 'normal',
@@ -90,9 +70,8 @@ const Chart = (props: Props) => {
                                 content: `P99: ${p99 ? Math.round(p99) : '-'}ms`,
                                 display: true,
                                 position: 'start',
-                                backgroundColor: "#FFFFFF00",
+                                backgroundColor: "#FFFFFF",
                                 color: themeColors['base-content'],
-                                yAdjust: -10,
                                 font: {
                                     weight: 'normal',
                                     size: 11
@@ -100,10 +79,10 @@ const Chart = (props: Props) => {
                             }
                         },
                         stddev: {type: 'box',
-                        yMin: avg && stdDev ? avg - stdDev : 0,
-                        yMax: avg && stdDev ? avg + stdDev : 0,
+                        yMin: p50 && stdDev ? p50 - stdDev : 0,
+                        yMax: p50 && stdDev ? p50 + stdDev : 0,
                         borderColor: "#00000000",
-                        backgroundColor: themeColors['base-content'] + "11"}
+                        backgroundColor: themeColors['base-content'] + "10"}
                         
                 })
                 }
@@ -141,7 +120,11 @@ const Chart = (props: Props) => {
                     ticks: {
                         maxTicksLimit: 5,
                         display: !minimalistic,
-                        color: themeColors['base-content'] + "88"
+                        color: themeColors['base-content'] + "88",
+                        callback: function(value, index, ticks) {
+                            const d = new Date(value);
+                            return `${d.getMonth() + 1}/${d.getDate()} ${doubleZero(d.getHours())}:${doubleZero(d.getMinutes())}`;
+                        }
                     }
                 }
             },
