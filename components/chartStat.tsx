@@ -22,12 +22,15 @@ const ChartStat = (props: Props) => {
     } = branchBenchmark;
 
     return (
-        <div key={name} className='p-4'>
-            <div className="flex flex-col py-1">
-                <h4 className="text-xl font-bold">{
-                    name
-                }</h4>
-                <p className="text-base-content/70">{description}</p>
+        <div id={name} key={name} className='p-4 group'>
+            <div className="flex justify-between">
+              <div className="flex flex-col py-1">
+                  <h4 className="text-xl font-bold">{
+                      name
+                  }</h4>
+                  <p className="text-base-content/70">{description}</p>
+              </div>
+              <button className="btn btn-ghost btn-xs hidden">View SQL</button>
             </div>
             <div className='h-12 mt-4'>
                 <Chart

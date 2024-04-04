@@ -9,6 +9,22 @@ const config: Config = {
     ],
     theme: {
         extend: {
+            typography: {
+                DEFAULT: {
+                    css: {
+                        h2: {
+                            'font-size': '2.25rem',
+                            'line-height': '2.5rem',
+                            'font-weight': '700',
+                        },
+                        h3: {
+                            'font-size': '1.875rem',
+                            'line-height': '2.25rem',
+                            'font-weight': '700',
+                        }
+                    }
+                }
+            },
             backgroundImage: {
                 "gradient-radial": "radial-gradient(var(--tw-gradient-stops))",
                 "gradient-conic":

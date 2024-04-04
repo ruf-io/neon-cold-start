@@ -1,16 +1,26 @@
 import { use, useEffect, useState } from "react";
 import { useInterval } from "usehooks-ts";
 
-const Graphic = () => {
+interface Props {
+  version: "IDE" | "COST";
+}
+
+const Graphic = (props: Props) => {
+  const { version } = props;
   const [step, setStep] = useState(0);
   const [idleCounter, setIdleCounter] = useState<number>(0);
   const [funCounter, setFunCounter] = useState<number>(0);
+  const [slowed, setSlowed] = useState<boolean>(true);
 
   const runSimulation = () => {
     if (step == 0) {
       setStep(1);
     }
     setFunCounter(funCounter + 1);
+  };
+
+  const checkHandler = () => {
+    setSlowed(!slowed);
   };
 
   useInterval(() => {
@@ -36,7 +46,7 @@ const Graphic = () => {
             () => {
               setStep(step + 1);
             },
-            idleCounter > 0 ? 5 : 600
+            idleCounter > 0 ? 10 : slowed ? 800 : 300
           );
           break;
         case 4:
@@ -44,25 +54,29 @@ const Graphic = () => {
             () => {
               setStep(step + 1);
             },
-            idleCounter > 0 ? 5 : 800
+            idleCounter > 0 ? 10 : slowed ? 800 : 300
           );
           break;
         case 5:
-          setIdleCounter(60);
-          setStep(0);
+          setIdleCounter(46);
+          setTimeout(
+            () => {
+              setStep(0);
+            },
+            idleCounter > 0 ? 10 : 100
+          );
           break;
       }
     }
   }, [step]); // <-- dependency array
 
   return (
+    <>
     <svg
-      width="655"
-      height="220"
-      viewBox="0 0 655 220"
+      viewBox="0 0 655 200"
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
-      className="select-none"
+      className="select-none mt-12 w-full"
       id="cold-starts"
     >
       <g data-id="ide">
@@ -158,6 +172,17 @@ const Graphic = () => {
             <tspan className="fill-info">(</tspan>&apos;...&apos;
             <tspan className="fill-info">)</tspan>
           </text>
+          {step === 5 ? (
+            <rect
+              x="-6"
+              y="95"
+              width="230"
+              height="20"
+              className="fill-primary/50"
+            />
+          ) : (
+            ""
+          )}
           <text y="110">
             <tspan className="fill-[#bf8fff]">console</tspan>.
             <tspan className="fill-warning">log</tspan>
@@ -237,13 +262,12 @@ const Graphic = () => {
           }
         />
         {idleCounter > 0 && (
-          <circle
-            r="5"
-            transform="translate(470,135), rotate(-90)"
+          <path
+            d="M468,131h-46"
             className="stroke-neutral"
             strokeWidth="5"
-            strokeDasharray="32,32"
-            strokeDashoffset={32 - (idleCounter/2)}
+            strokeDasharray="46,46"
+            strokeDashoffset={idleCounter+46}
           />
         )}
         <text
@@ -251,7 +275,7 @@ const Graphic = () => {
             step === 0 && idleCounter === 0 ? "fill-neutral/10" : "fill-neutral"
           }`}
           x="445"
-          y="115"
+          y="112"
           dominantBaseline="middle"
           textAnchor="middle"
         >
@@ -345,10 +369,10 @@ const Graphic = () => {
       <g
         data-id="run_button"
         onClick={runSimulation}
-        className="cursor-pointer active:translate-y-px"
+        className="cursor-pointer active:translate-y-px text-primary filter hover:brightness-105"
       >
         <rect
-          className="fill-primary"
+          className="fill-current"
           x="165"
           y="134"
           width="80"
@@ -356,7 +380,7 @@ const Graphic = () => {
           rx="5"
         />
         <text
-          className="fill-primary-content"
+          className="fill-white tracking-wider"
           x="205"
           y="156"
           dominantBaseline="middle"
@@ -365,17 +389,17 @@ const Graphic = () => {
           RUN
         </text>
       </g>
-      <text
-        className="fill-base-content/50 italic text-sm"
-        x="330"
-        y="212"
-        dominantBaseline="middle"
-        textAnchor="middle"
-      >
-        *Timing of cold starts have been slowed down and autosuspends sped up
-        for illustrative purposes.
-      </text>
     </svg>
+    <div className="">
+      
+    <div className="label gap-2">
+    <strong className="flex-1 text-right">Cold start timing:</strong>
+      <span className="label-text">Slowed Down</span>
+      <input type="checkbox" className="toggle" onChange={checkHandler}/>
+      <span className="label-text">Realistic</span> 
+    </div>
+  </div>
+    </>
   );
 };
 

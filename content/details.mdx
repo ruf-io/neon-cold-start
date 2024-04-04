@@ -1,0 +1,145 @@
+### Scale to zero, defined
+
+When a Neon compute endpoint hasn't received any connections for a specified amount of time, it will [autosuspend](https://neon.tech/docs/introduction/auto-suspend). This is helpful in two ways:
+
+-  **Resource Management** - No stress about turning off databases. It's automatic.
+- **Cost-Efficiency** - Never pay for database compute that's not serving queries.
+
+But the part that takes _"we turned the database off for you"_ from bug to feature is starting it back up quickly when needed... That's why cold start times are so important.
+
+#### How Neon optimizes cold start speed
+
+Neon keeps a certain amount of empty computes "pre-warmed" in compute pools to ensure that when a user's database needs to start, most of the work is done already. More technical details are available in the article: [cold starts just got hot](https://neon.tech/blog/cold-starts-just-got-hot?ref=a).
+
+## When to use scale-to-zero databases
+
+Look at the cold start times documented above and decide: _In what scenarios is the occasional `575ms` delay acceptable?_
+
+The answer may depend on the specifics of your project, but here are some example scenarios where many users find scale to zero useful:
+
+- **Non-Production Databases** - Development, preview, staging, test databases.
+- **Internal Apps** - If the userbase for your app is a limited number of employees, the db is likely idle more often than active.
+- **Database-per-user Architectures** - Instead of having a single database for all users, if you have a separate database for each user, the activity level of any one database may be low enough that scale to zero results in significant cost reduction.
+- **Small Projects** - For small projects, configuring the production database to scale to zero can make it more cost-efficient without major impact to UX.
+
+And remember German Escalators: Don't let anyone tell you that scale to zero makes a database unfit for production.
+
+---
+
+## Cold Start FAQs
+
+If your questions aren't answered below, [ask in the Neon Discord](https://neon.tech/discord).
+
+### How often will my users encounter cold starts?
+
+That depends on two factors: (1) how long you've configured the compute to wait before autosuspending, and (2) the pattern of activity on the database.
+
+Imagine a project configured to autosuspend after five minutes of inactivity (the default), the number of cold starts experienced in a day is equal to the number of gaps in activity greater than five minutes.
+
+[GRAPHIC]
+
+### How do cold starts affect usability?
+
+For end-users, a cold start will add _[AVG Cold Start Time]_ millisecond delay to the response time of the first query to hit a suspended compute. In a web application that may result in part or all of a page taking _[AVG Cold Start Time]_ milliseconds longer to render.
+
+### Does the Serverless Driver affect cold starts?
+
+The benchmarks above use the standard [`node-postgres`](https://node-postgres.com/) driver (AKA `pg`) to connect to Neon.
+Neon also provides a [serverless driver](https://neon.tech/docs/serverless/serverless-driver) that allows users to connect to Neon from serverless environments over HTTP or WebSockets.
+
+While the serverless driver was originally created for environments where TCP is not available, it works everywhere.
+And, the optimizations made in the serverless driver to reduce the back-and-forth roundtrips required to initiate a connection may actually cut your cold start time by 10-50 milliseconds.
+
+
+### Are cold starts longer for branches?
+
+No. [Database branches](https://neon.tech/docs/introduction/branching?ref=andy) are a core primitive in Neon.
+They work a lot like git branches:
+You can create a branch of your database at its current state or any other point in its history.
+
+When you create a branch, a new, separate compute endpoint is started up to query it. Here's a secret: **Even the main database is a branch,** so cold starts for new branches are exactly the same as cold starts for everything else on Neon databases. It's branches all the way down!
+
+In fact, this benchmark operates by [creating several branches with varying schema]() and testing cold starts on each.
+
+### Are start times longer for creating databases?
+
+No. When a user first creates a new database project on Neon, the platform runs the same cold start on a new empty database.
+
+### Does database size affect cold start time?
+
+The [500 MB](#500MB) above cold starts a database with 500MB of data, you can compare the times to the rest of the benchmarks to determine how use of extensions affect load times.
+
+### Do extensions affect cold start times?
+
+The [Extensions benchmark](#Extensions) above loads 60 Postgres extensions, you can compare the times to the rest of the benchmarks to determine how use of extensions affect load times.
+
+---
+
+## Benchmark methodology
+
+To gather real-world cold start times, the benchmark uses a Neon project with a separate [database branch](https://neon.tech/docs/introduction/branching?ref=a) for each of the above variants. A [serverless function](https://github.com/ruf-io/neon-cold-start/blob/main/setup/index.js) executes the following steps every 30 minutes:
+
+1. Check that the database is autosuspended
+2. Connect and execute a SQL query on the database, forcing it to start.
+3. Log the total response time from before connection create to after response received.
+4. Suspend the database.
+
+### Calculating Results
+
+The cold start duration for every benchmark run is saved in a table.
+To calculate the results, results are fetched and the [`simple-statistics`](https://simple-statistics.github.io/) library is used to calculate P50, P99, and Standard Deviation of results.
+
+The code where the results are calculated can be found [here](https://github.com/ruf-io/neon-cold-start/blob/main/hooks/index.tsx#L126-L134).
+
+### Benchmark Code
+
+All code for the benchmark and display of results is available [on GitHub](https://github.com/ruf-io/neon-cold-start/blob/main/setup/index.js) Here is a snippet showing how the timing of the cold start is measured:
+
+```javascript
+// Run benchmark
+const before = new Date(); // <-- Start Timer Here
+const benchmarkPool = new Pool({
+  host: benchmarkEndpoint.host,
+  password: benchmarkRolePassword,
+  user: ROLE_NAME,
+  database: DATABASE_NAME,
+  ssl: true,
+});
+
+await benchmarkPool.query(benchmarkQuery);
+const after = new Date(); // <-- End Timer Here
+const benchmarkValue = after.getTime() - before.getTime();
+benchmarkPool.end();
+```
+
+### Benchmark Specifications
+
+<dl>
+    <dt>Database Compute Size:</dt>
+    <dd>0.25 CU (0.25 vCPU, 1GB RAM)</dd>
+    <dt>Database Region:</dt>
+    <dd>AWS US-East-2 (Ohio)</dd>
+    <dt>Lambda Region:</dt>
+    <dd>AWS US-East-2 (Ohio)</dd>
+
+    <dt>Postgres Version:</dt>
+    <dd>PostgreSQL 16</dd>
+    <dt>Postgres Driver:</dt>
+    <dd><a href="https://node-postgres.com/">node-postgres</a></dd>
+
+</dl>
+
+
+
+## Try It Yourself
+
+Sign up for the [free Neon account](https://neon.tech?ref=andy), clone the repo for this benchmark and website: [Neon Cold Start Repo](https://github.com/ruf-io/neon-cold-start) and you can run and modify the benchmarks yourself.
+Follow the developer docs in the repo to get started.
+
+Keep in mind that benchmarks run locally will include the roundtrip latency from your device to AWS datacenter. The cold starts from this page are deployed in a Lambda in the same AWS region as the Neon database.
+
+---
+
+#### Credits
+
+Special thanks to [`joacoc`](https://github.com/joacoc) for writing the benchmark logic.
