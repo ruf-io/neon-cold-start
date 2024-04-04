@@ -72,11 +72,18 @@ const Graphic = (props: Props) => {
 
   return (
     <>
+    <div className="mt-8 mb-2 label gap-2">
+    <button className="btn btn-primary" onClick={runSimulation}>Run a Query</button>
+    <strong className="flex-1 text-right">Cold start timing:</strong>
+      <div className="label-text">Slowed Down</div>
+      <input type="checkbox" className="toggle" onChange={checkHandler}/>
+      <span className="label-text">Realistic</span> 
+    </div>
     <svg
       viewBox="0 0 655 200"
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
-      className="select-none mt-12 w-full"
+      className="select-none  w-full"
       id="cold-starts"
     >
       <g data-id="ide">
@@ -366,39 +373,10 @@ const Graphic = (props: Props) => {
           className="stroke-stone-50 stroke-[3px]"
         />
       </g>
-      <g
-        data-id="run_button"
-        onClick={runSimulation}
-        className="cursor-pointer active:translate-y-px text-primary filter hover:brightness-105"
-      >
-        <rect
-          className="fill-current"
-          x="165"
-          y="134"
-          width="80"
-          height="40"
-          rx="5"
-        />
-        <text
-          className="fill-white tracking-wider"
-          x="205"
-          y="156"
-          dominantBaseline="middle"
-          textAnchor="middle"
-        >
-          RUN
-        </text>
-      </g>
-    </svg>
-    <div className="">
       
-    <div className="label gap-2">
-    <strong className="flex-1 text-right">Cold start timing:</strong>
-      <span className="label-text">Slowed Down</span>
-      <input type="checkbox" className="toggle" onChange={checkHandler}/>
-      <span className="label-text">Realistic</span> 
-    </div>
-  </div>
+    </svg>
+      
+    
     </>
   );
 };
