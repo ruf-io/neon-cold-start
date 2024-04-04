@@ -51,7 +51,7 @@ const Chart = (props: Props) => {
                                 content: `P50: ${p50 ? Math.round(p50) : '-'}ms`,
                                 display: true,
                                 position: 'start',
-                                backgroundColor: "#FFFFFF",
+                                backgroundColor: themeColors['base-100'],
                                 color: themeColors['base-content'],
                                 font: {
                                     weight: 'normal',
@@ -70,7 +70,7 @@ const Chart = (props: Props) => {
                                 content: `P99: ${p99 ? Math.round(p99) : '-'}ms`,
                                 display: true,
                                 position: 'start',
-                                backgroundColor: "#FFFFFF",
+                                backgroundColor: themeColors['base-100'],
                                 color: themeColors['base-content'],
                                 font: {
                                     weight: 'normal',
