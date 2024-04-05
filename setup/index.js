@@ -1,5 +1,5 @@
-const PgPool = require("pg").Pool;
-const { neonConfig, Pool: NeonPool } = require("@neondatabase/serverless");
+const { Pool: PgPool, Client: PgClient } = require("pg");
+const { neonConfig, Client: NeonClient } = require("@neondatabase/serverless");
 const { createApiClient } = require("@neondatabase/api-client");
 const { readFileSync } = require("fs");
 const { randomUUID } = require("crypto");
@@ -12,16 +12,16 @@ const configFile = JSON.parse(readFileSync(__dirname + "/config.json", "utf-8"))
 
 /**
  * Drivers
- * @type {{NODE_POSTGRES: {name: string, Pool: PgPool}, NEON_SERVERLESS: {name: string, Pool: NeonPool}}}
+ * @type {{NODE_POSTGRES: {name: string, Client: PgClient}, NEON_SERVERLESS: {name: string, Client: NeonClient}}}
  */
 const DRIVERS = {
-    NODE_POSTGRES: {
-        name: "node-postgres",
-        Pool: PgPool,
+    NODE_POSTGRES_CLIENT: {
+        name: "node-postgres (Client)",
+        Client: PgClient,
     },
-    NEON_SERVERLESS: {
-        name: "@neondatabase/serverless",
-        Pool: NeonPool,
+    NEON_SERVERLESS_CLIENT: {
+        name: "@neondatabase/serverless (Client)",
+        Client: NeonClient,
     }
 }
 
@@ -228,6 +228,33 @@ const suspendProjectEndpoint = async (apiClient, projectId, endpointId, sleepTim
 }
 
 /**
+ * Creates a unique benchmark run record in the database to identify the current benchmark run.
+ * @param {Object} apiClient The API client used to interact with Neon.
+ * @param {string} projectId The ID of the project for which the endpoint will be suspended.
+ * @param {String} runId An identifier for the current benchmark run.
+ */
+async function createBenchmarkRun (apiClient, projectId, runId) {
+  const config = await getConfig(apiClient, projectId);
+
+  const mainConfig = config[MAIN_BRANCH_NAME];
+
+  const client = new PgClient({
+      host: mainConfig.endpoint.host,
+      password: mainConfig.password,
+      user: ROLE_NAME,
+      database: DATABASE_NAME,
+      ssl: true,
+  });
+
+  await client.connect();
+
+  log(`Creating benchmark run record in the database with ID ${runId}.`)
+
+  await client.query(`INSERT INTO benchmark_runs (id, ts) VALUES ($1, $2);`, [runId, new Date()]);
+  await client.end();
+}
+
+/**
  * Benchmarks the project. This process involves temporarily suspending
  * the project's endpoint and then running a benchmark query to assess performance.
  * The project's endpoint is suspended again after the benchmarking is completed.
@@ -244,14 +271,14 @@ const benchmarkProject = async ({ id: projectId }, apiClient, driver, runId) => 
     log(`Starting benchmark for project ${projectId} using driver ${driver.name}.`);
 
     // Use the Pool constructor from the given driver to create a connection pool
-    const Pool = driver.Pool;
+    const BenchmarkClient = driver.Client;
 
     // Get the project/branch configuration and details
     const config = await getConfig(apiClient, projectId);
 
     await waitProjectOpFinished(apiClient, projectId);
     const mainConfig = config[MAIN_BRANCH_NAME];
-    const mainPool = new PgPool({
+    const client = new PgClient({
         host: mainConfig.endpoint.host,
         password: mainConfig.password,
         user: ROLE_NAME,
@@ -259,8 +286,12 @@ const benchmarkProject = async ({ id: projectId }, apiClient, driver, runId) => 
         ssl: true,
     });
 
-    // The initial time is used to identify and group the benchmarks as a summary.
-    const initialTime = new Date();
+    client.on('error', (err) => {
+      log('Main client error:')
+      log(err)
+    });
+
+    await client.connect();
 
     Object.keys(config).forEach(async (branchName) => {
         benchQueue.add(async () => {
@@ -286,8 +317,8 @@ const benchmarkProject = async ({ id: projectId }, apiClient, driver, runId) => 
             log(`Benchmarking branch ${branchName} with endpoint ${benchmarkEndpoint.id} with driver ${driver.name}.`)
     
             // Run benchmark
-            const before = new Date();
-            const benchmarkPool = new Pool({
+            const coldTimeStart = Date.now();
+            const benchClient = new BenchmarkClient({
                 host: benchmarkEndpoint.host,
                 password: benchmarkRolePassword,
                 user: ROLE_NAME,
@@ -295,16 +326,23 @@ const benchmarkProject = async ({ id: projectId }, apiClient, driver, runId) => 
                 ssl: true,
             });
     
-            await benchmarkPool.query(benchmarkQuery);
-            const after = new Date();
-            const benchmarkValue = after.getTime() - before.getTime();
-            await benchmarkPool.end();
+            await benchClient.connect();
+            await benchClient.query(benchmarkQuery);
+            const coldQueryMs = Date.now() - coldTimeStart;
+
+            const hotQueryTimes = []
+            for (let i = 0; i < 10; i++) {
+                const start = Date.now();
+                await benchClient.query(benchmarkQuery);
+                hotQueryTimes.push(Date.now() - start);
+            }
+            await benchClient.end();
             
-            log(`Benchmark complete ${branchName} / ${benchmarkEndpoint.id} / ${driver.name}: ${benchmarkValue}ms.`)
-    
-            await mainPool.query(
-                "INSERT INTO benchmarks VALUES ($1, $2, $3, $4, $5, $6)",
-                [branchId, initialTime, benchmarkValue, new Date(), driver.name, runId]
+            log(`Benchmark complete. Details ${branchName} / ${benchmarkEndpoint.id} / ${driver.name}. Cold ${coldQueryMs} / Hot ${hotQueryTimes.join(',')}`)
+
+            await client.query(
+                "INSERT INTO benchmarks (branch_id, cold_query_ms, hot_queries_ms, ts, driver, benchmark_run_id) VALUES ($1, $2, $3, $4, $5, $6)",
+                [branchId, coldQueryMs, hotQueryTimes, new Date(), driver.name, runId]
             )
     
             await suspendProjectEndpoint(apiClient, projectId, benchmarkEndpoint.id, 5000);
@@ -315,7 +353,7 @@ const benchmarkProject = async ({ id: projectId }, apiClient, driver, runId) => 
 
     log(`Finished benchmarking project using driver ${driver.name}.`)
 
-    await mainPool.end();
+    await client.end();
 }
 
 function log (str) {
@@ -331,13 +369,22 @@ exports.handler = async () => {
         throw new Error("API KEY is missing.");
     }
 
+    const drivers = Object.values(DRIVERS).map(x => x.name).join(", ");
     const apiClient = createApiClient({
         apiKey: API_KEY,
     });
+
     const project = await getProject(apiClient);
     const runId = randomUUID()
-    await benchmarkProject(project, apiClient, DRIVERS.NODE_POSTGRES, runId);
+
+    await createBenchmarkRun(apiClient, project.id, runId);
+
+    log(`Starting benchmarking (ID: ${runId}) drivers ${drivers}`)
+    await benchmarkProject(project, apiClient, DRIVERS.NODE_POSTGRES_CLIENT, runId);
+    
     log('Waiting 1 minute before testing next driver...')
     await sleep(60 * 1000)
-    await benchmarkProject(project, apiClient, DRIVERS.NEON_SERVERLESS, runId);
+
+    await benchmarkProject(project, apiClient, DRIVERS.NEON_SERVERLESS_CLIENT, runId);
+    log(`Finished benchmarking (ID: ${runId}) drivers ${drivers}`)
 }

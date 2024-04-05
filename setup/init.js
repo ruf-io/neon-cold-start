@@ -71,7 +71,25 @@ const initProject = async (apiClient, branches) => {
     const config = parse(mainConnectionUri);
     const mainPool = new Pool(config);
     await mainPool.query("CREATE TABLE IF NOT EXISTS branches (id TEXT, name TEXT, description TEXT);");
-    await mainPool.query("CREATE TABLE IF NOT EXISTS benchmarks (id TEXT, initial_timestamp TIMESTAMP, duration INT, ts TIMESTAMP, driver TEXT, run_id TEXT);");
+    await mainPool.query(`CREATE TABLE IF NOT EXISTS benchmark_runs (
+        id CHAR(36) PRIMARY KEY,
+        ts TIMESTAMP
+      );
+    `);
+    await mainPool.query(`CREATE TABLE IF NOT EXISTS benchmarks (
+        id INT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+        branch_id TEXT,
+        cold_query_ms INT,
+        hot_queries_ms INT[],
+        ts TIMESTAMP,
+        driver TEXT,
+        benchmark_run_id CHAR(36),
+        CONSTRAINT fk_benchmark_runs FOREIGN KEY (benchmark_run_id)
+          REFERENCES benchmark_runs (id)
+          ON DELETE CASCADE
+          ON UPDATE CASCADE
+      );`
+    );
 
     for (const branch of branches) {
         await waitProjectOpFinished(apiClient, projectId);
