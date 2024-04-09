@@ -13,10 +13,11 @@ function summaryRowsSql(minDate: Date, stride: string) {
     return `
         WITH avgs AS (
             SELECT
-                initial_timestamp,
-                duration as avg_duration
+              date_bin('${stride}'::interval, ts, '2024-03-01'::timestamp) as initial_timestamp,
+              AVG(cold_query_ms) as avg_duration
             FROM benchmarks
-            WHERE ts > '${minDate.toISOString()}'
+            WHERE ts > '${minDate.toISOString()}' AND driver = 'node-postgres (Client)'
+            GROUP BY initial_timestamp
         )
         SELECT
             initial_timestamp,
@@ -36,20 +37,41 @@ function branchRowsSql(minDate: Date, stride: string) {
     return `
         WITH avgs AS (
             SELECT
-                id,
-                date_bin('${stride}'::interval, initial_timestamp, '2024-03-01'::timestamp) as initial_timestamp,
-                AVG(duration) as avg_duration
+                branch_id as id,
+                date_bin('${stride}'::interval, ts, '2024-03-01'::timestamp) as ts,
+                AVG(cold_query_ms) as avg_duration
             FROM benchmarks
-            WHERE initial_timestamp > '${minDate.toISOString()}'
-            GROUP BY id, initial_timestamp
+            WHERE ts > '${minDate.toISOString()}' AND driver = 'node-postgres (Client)'
+            GROUP BY id, ts
         )
         SELECT
             id,
             AVG(avg_duration) AS duration,
-            initial_timestamp AS ts
+            ts
         FROM avgs
-        GROUP BY id, initial_timestamp
-        ORDER BY initial_timestamp DESC;
+        GROUP BY id, ts
+        ORDER BY ts DESC;
+    `;
+}
+
+function hotStartTimesSql (minDate: Date) {
+    return `
+      SELECT
+          br.ts,
+          b.branch_id,
+          AVG(unnest_hot_query) AS avg_hot_start_time
+      FROM
+          benchmark_runs br
+      JOIN
+          benchmarks b ON br.id = b.benchmark_run_id,
+          unnest(b.hot_queries_ms) AS unnest_hot_query
+      WHERE
+        br.ts > '${minDate.toISOString()}'
+      GROUP BY
+          br.id,
+          b.branch_id
+      ORDER BY
+          br.ts;
     `;
 }
 
@@ -88,18 +110,25 @@ export async function GET(req: NextRequest) {
     const branches = await sql`SELECT id, name, description FROM branches;`;
     const summaryRows = await sql(summaryRowsSql(today, stride));
     const rows = await sql(branchRowsSql(today, stride));
+    const hotStartTimes = await sql(hotStartTimesSql(today));
+    const hotDataPoints = hotStartTimes.map(x => ({
+      x: x.ts,
+      y: Number(x.avg_hot_start_time),
+      id: x.branch_id,
+    }));
     const dataPoints = rows.map(x => ({
         x: x.ts,
         y: Number(x.duration),
         id: x.id,
     }));
     const summary = summaryRows.map(x => ({
-        x: x.initial_timestamp,
+        x: x.ts,
         y: Number(x.avg),
     }))
 
     return NextResponse.json({
         data: {
+            hotDataPoints,
             dataPoints,
             branches,
             summary
