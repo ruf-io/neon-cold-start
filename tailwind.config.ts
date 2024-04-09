@@ -9,6 +9,22 @@ const config: Config = {
     ],
     theme: {
         extend: {
+            typography: {
+                DEFAULT: {
+                    css: {
+                        h2: {
+                            'font-size': '2.25rem',
+                            'line-height': '2.5rem',
+                            'font-weight': '700',
+                        },
+                        h3: {
+                            'font-size': '1.875rem',
+                            'line-height': '2.25rem',
+                            'font-weight': '700',
+                        }
+                    }
+                }
+            },
             backgroundImage: {
                 "gradient-radial": "radial-gradient(var(--tw-gradient-stops))",
                 "gradient-conic":
@@ -17,8 +33,26 @@ const config: Config = {
             animation: {
                 flip: "flip 3s infinite steps(2, end)",
                 rotate: "rotate 1.5s linear infinite both",
+                clickyclicky: "clickyclicky 1.25s linear infinite",
             },
             keyframes: {
+                clickyclicky: {
+                    "0%, 15%": {
+                        transform: "translateY(0)",
+                    },
+                    "20%": {
+                        transform: "translateY(1.5px)",
+                    },
+                    "25%, 30%": {
+                        transform: "translateY(0)",
+                    },
+                    "35%": {
+                        transform: "translateY(1.5px)",
+                    },
+                    "40%, 100%": {
+                        transform: "translateY(0)",
+                    },
+                },
                 flip: {
                     to: {
                         transform: "rotate(360deg)",

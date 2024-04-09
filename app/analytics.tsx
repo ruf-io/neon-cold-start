@@ -1,7 +1,7 @@
 "use client";
 import { MouseEventHandler, useCallback, useMemo, useState } from 'react';
 import Stat, { formatFloatToStatString } from '@/components/stat';
-import Chart, { Display, statIdToDisplay, themeColors } from '@/components/chart';
+import Chart, { themeColors } from '@/components/chart';
 import { ChartData, ChartDataset, ScriptableContext } from 'chart.js';
 import DateFilter, { Filter } from '@/components/dateFilter';
 import Error from "@/components/error";
@@ -11,8 +11,7 @@ import ChartStat from '@/components/chartStat';
 
 export default function Analytics() {
     const [benchmarkPage, setBenchmarkPage] = useState(false);
-    const [filter, setFilter] = useState<Filter>(Filter.Day);
-    const [display, setDisplay] = useState<undefined | Display>(undefined);
+    const [filter, setFilter] = useState<Filter>(Filter.Week);
     const { loading, error, data: benchmark } = useBenchmarks(filter);
     
     const branchDatasets = useMemo<Array<ChartDataset<"line">>>(() => {
@@ -52,36 +51,22 @@ export default function Analytics() {
             fill: "start",
             backgroundColor: (context: ScriptableContext<"line">) => {
                 const ctx = context.chart.ctx;
-                const gradient = ctx.createLinearGradient(0, 0, 0, 200);
-                gradient.addColorStop(0, themeColors.primary + "50");
+                const gradient = ctx.createLinearGradient(0, 0, 0, 270);
+                gradient.addColorStop(0, themeColors.primary + "80");
                 gradient.addColorStop(1, themeColors.primary + "00");
                 return gradient;
             }
         };
     }, [benchmark]);
-    const { avg, p99, stdDev, sampleSize } = useMemo(() => {
+    const { p50, p99, stdDev, sampleSize } = useMemo(() => {
         return {
-            avg: benchmark?.summary.avg,
+            p50: benchmark?.summary.p50,
             p99: benchmark?.summary.p99,
             stdDev: benchmark?.summary.stdDev,
             sampleSize: benchmark?.summary.sampleSize,
         }
     }, [benchmark]);
     const onFilterChange = useCallback((newFilter: Filter) => setFilter(newFilter), []);
-
-    const onClick = useCallback<MouseEventHandler<HTMLDivElement>>((e) => {
-        const statDisplay = statIdToDisplay(e.currentTarget.id);
-        if (display === statDisplay) {
-            setDisplay(undefined);
-        } else {
-            setDisplay(statDisplay);
-        }
-        e.preventDefault();
-    }, [display]);
-
-    const onBenchmarkClick = useCallback(() => {
-        setBenchmarkPage(!benchmarkPage);
-    }, [benchmarkPage]);
 
     return (
         <section className="w-full flex flex-col gap-16">
@@ -101,14 +86,14 @@ export default function Analytics() {
                         <h2 className="font-bold text-3xl">Benchmark Summary</h2>
                         <p className="text-base-content/70">Cold start times summarized across all tests and variants.</p>
                     </div>
-                    <div className='ml-auto order-3'>
+                    <div className='ml-auto order-3 hidden'>
                         <DateFilter filter={filter} handleChange={onFilterChange} />
                     </div>
                 </div>
                 <div className="flex flex-col lg:flex-row gap-8 items-center justify-center">
                     <div className="flex flex-col gap-8">
                         <div className="flex gap-8">
-                            <Stat stat={formatFloatToStatString(avg)} title="Average" key="Average" desc="milliseconds" showTimer={true} help="Average across all variations, all runs" />
+                            <Stat stat={formatFloatToStatString(p50)} title="P50" key="P50" desc="milliseconds" showTimer={true} help="50th percentile across all variations, all runs" />
                             <Stat stat={formatFloatToStatString(p99)} title="P99" key="P99" desc="milliseconds" showTimer={true} help="99th percentile across all variations, all runs" />
                         </div>
                         <div className="flex gap-8">
@@ -118,7 +103,7 @@ export default function Analytics() {
                     </div>
                     <div className="h-80 flex-1 w-full lg:w-auto">
                         <Chart
-                            avg={avg}
+                            p50={p50}
                             p99={p99}
                             stdDev={stdDev}
                             chartData={{ datasets: [summaryDataset] }}
@@ -132,7 +117,7 @@ export default function Analytics() {
                 <div className='grid grid-cols-1 lg:grid-cols-2 gap-6 pt-10'>
                     {
                         benchmark && benchmark.branches.map((branchBenchmark, i) => (
-                            <ChartStat key={branchBenchmark.name} branchBenchmark={branchBenchmark} display={display} dataset={branchDatasets[i]} />
+                            <ChartStat key={branchBenchmark.name} branchBenchmark={branchBenchmark} dataset={branchDatasets[i]} />
                         ))
                     }
                 </div>

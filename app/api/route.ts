@@ -13,17 +13,16 @@ function summaryRowsSql(minDate: Date, stride: string) {
     return `
         WITH avgs AS (
             SELECT
-                date_bin('${stride}'::interval, ts, '2024-03-01'::timestamp) as initial_timestamp,
-                AVG(cold_query_ms) as avg_duration
+              date_bin('${stride}'::interval, ts, '2024-03-01'::timestamp) as initial_timestamp,
+              AVG(cold_query_ms) as avg_duration
             FROM benchmarks
             WHERE ts > '${minDate.toISOString()}' AND driver = 'node-postgres (Client)'
             GROUP BY initial_timestamp
         )
         SELECT
             initial_timestamp,
-            AVG(avg_duration)
+            avg_duration as avg
         FROM avgs
-        GROUP BY initial_timestamp
         ORDER BY initial_timestamp DESC;
     `;
 }
