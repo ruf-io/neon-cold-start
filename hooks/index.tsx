@@ -18,9 +18,6 @@ export interface BranchPoint extends Point {
 }
 
 export interface BranchBenchmark {
-    max: number;
-    min: number;
-    sum: number;
     p50: number;
     p99: number;
     stdDev: number;
@@ -43,9 +40,6 @@ export interface State<T> {
 
 const processBranchDatapoint = (branch: BranchBenchmark, dataPoint: BranchPoint | Point) => {
     branch.dataPoints.push(dataPoint);
-    branch.sum += dataPoint.y;
-    if (branch.min > dataPoint.y) branch.min = dataPoint.y;
-    if (branch.max < dataPoint.y) branch.max = dataPoint.y;
 }
 
 const initBenchmark = (
@@ -58,9 +52,6 @@ const initBenchmark = (
         const branchDescription = branchDescriptions.find(x => x.id === id);
         if (branchDescription) {
             return {
-                min: Number.MAX_SAFE_INTEGER,
-                max: Number.MIN_SAFE_INTEGER,
-                sum: 0,
                 p50: 0,
                 p99: 0,
                 stdDev: 0,
@@ -73,9 +64,6 @@ const initBenchmark = (
     }
 
     return {
-        min: Number.MAX_SAFE_INTEGER,
-        max: Number.MIN_SAFE_INTEGER,
-        sum: 0,
         p50: 0,
         p99: 0,
         stdDev: 0,

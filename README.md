@@ -92,10 +92,18 @@ After the benchmark, the results are stored in the _main_ branch in the followin
 
 ```sql
 CREATE TABLE IF NOT EXISTS benchmarks (
-    id TEXT, -- Benchmark branch ID.
-    initial_timestamp TIMESTAMP, -- Useful to group benchmarks from the same run.
-    duration INT, -- Benchmark duration expressed in ms. 
-    ts TIMESTAMP -- Benchmark timestamp.
+    id INT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    branch_id TEXT, -- Benchmark branch ID.
+    cold_start_connect_query_response_ms INT, -- Timing for cold start + connection + query/response
+    hot_connect_query_response_ms INT[],  -- Array of the timing of repeated hot connection + queries/responses
+    hot_query_response_ms INT[],  -- Array of the timing of repeated hot query/responses
+    ts TIMESTAMP,  -- when the benchmark started running
+    driver TEXT, -- which driver was used, 'node-postgres (Client)' or '@neondatabase/serverless (Client)'
+    benchmark_run_id CHAR(36),
+    CONSTRAINT fk_benchmark_runs FOREIGN KEY (benchmark_run_id)
+        REFERENCES benchmark_runs (id)
+        ON DELETE CASCADE
+        ON UPDATE CASCADE
 );
 ```
 

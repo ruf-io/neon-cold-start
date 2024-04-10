@@ -20,6 +20,7 @@ ChartJS.register(...registerables);
 ChartJS.register(annotationPlugin);
 
 interface Props {
+    title?: string
     p50?: number;
     p99?: number;
     stdDev?: number;
@@ -28,8 +29,10 @@ interface Props {
 }
 
 const Chart = (props: Props) => {
-    const { p50, p99, stdDev, chartData, minimalistic } = props;
+    const {title="test", p50, p99, stdDev, chartData, minimalistic } = props;
     const ref = useRef<ChartJS<"line">>(null);
+
+    if (!minimalistic) { console.log(title, chartData)}
 
     return (
         // Casting ref to avoid type issues over `ChartJSOrUndefined`.

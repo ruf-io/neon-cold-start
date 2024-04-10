@@ -4,9 +4,9 @@
 ACTION=$1
 
 # Constants
-LAMBDA_NAME=BenchmarkRunner
-ROLE_NAME=neon-benchmark-lambda-execute-role
-SCHEDULER_NAME=NeonColdBenchmarkScheduler
+LAMBDA_NAME=QueryLatencyBenchmarkRunner
+ROLE_NAME=neon-query-latency-benchmark-lambda-execute-role
+SCHEDULER_NAME=NeonQueryLatencyBenchmarkScheduler
 
 # Check if LAMBDA is true; if so, only update lambda code
 if [[ "$ACTION" == "update" ]]; then

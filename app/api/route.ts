@@ -11,19 +11,25 @@ const CONNECTION_STRING = process.env["CONNECTION_STRING"];
  */
 function summaryRowsSql(minDate: Date, stride: string) {
     return `
-        WITH avgs AS (
             SELECT
-              date_bin('${stride}'::interval, ts, '2024-03-01'::timestamp) as initial_timestamp,
-              AVG(cold_query_ms) as avg_duration
-            FROM benchmarks
-            WHERE ts > '${minDate.toISOString()}' AND driver = 'node-postgres (Client)'
-            GROUP BY initial_timestamp
-        )
-        SELECT
-            initial_timestamp,
-            avg_duration as avg
-        FROM avgs
-        ORDER BY initial_timestamp DESC;
+                br.ts,
+                cold_start_connect_query_response_ms,
+                AVG(unnest_hot_connect_query_response_ms)::int AS avg_hot_connect_query_response_ms,
+                AVG(unnest_hot_query_response_ms)::int AS avg_hot_query_response_ms
+            FROM
+                benchmark_runs br
+            JOIN
+                benchmarks b ON br.id = b.benchmark_run_id,
+                unnest(b.hot_connect_query_response_ms) AS unnest_hot_connect_query_response_ms,
+                unnest(b.hot_query_response_ms) AS unnest_hot_query_response_ms
+            WHERE
+                b.driver = 'node-postgres (Client)'
+                AND br.ts > '${minDate.toISOString()}'
+                AND b.branch_id = (SELECT id FROM branches WHERE name = 'Select')
+            GROUP BY
+                1,2
+            ORDER BY
+                1;
     `;
 }
 
@@ -39,7 +45,7 @@ function branchRowsSql(minDate: Date, stride: string) {
             SELECT
                 branch_id as id,
                 date_bin('${stride}'::interval, ts, '2024-03-01'::timestamp) as ts,
-                AVG(cold_query_ms) as avg_duration
+                AVG(cold_start_connect_query_response_ms) as avg_duration
             FROM benchmarks
             WHERE ts > '${minDate.toISOString()}' AND driver = 'node-postgres (Client)'
             GROUP BY id, ts
@@ -54,7 +60,7 @@ function branchRowsSql(minDate: Date, stride: string) {
     `;
 }
 
-function hotStartTimesSql (minDate: Date) {
+function hotConnectQueryResponseTimesSql(minDate: Date) {
     return `
       SELECT
           br.ts,
@@ -64,7 +70,28 @@ function hotStartTimesSql (minDate: Date) {
           benchmark_runs br
       JOIN
           benchmarks b ON br.id = b.benchmark_run_id,
-          unnest(b.hot_queries_ms) AS unnest_hot_query
+          unnest(b.hot_connect_query_response_ms) AS unnest_hot_query
+      WHERE
+        br.ts > '${minDate.toISOString()}'
+      GROUP BY
+          br.id,
+          b.branch_id
+      ORDER BY
+          br.ts;
+    `;
+}
+
+function hotQueryResponseTimesSql(minDate: Date) {
+    return `
+      SELECT
+          br.ts,
+          b.branch_id,
+          AVG(unnest_hot_query) AS avg_hot_start_time
+      FROM
+          benchmark_runs br
+      JOIN
+          benchmarks b ON br.id = b.benchmark_run_id,
+          unnest(b.hot_query_response_ms) AS unnest_hot_query
       WHERE
         br.ts > '${minDate.toISOString()}'
       GROUP BY
@@ -110,7 +137,7 @@ export async function GET(req: NextRequest) {
     const branches = await sql`SELECT id, name, description FROM branches;`;
     const summaryRows = await sql(summaryRowsSql(today, stride));
     const rows = await sql(branchRowsSql(today, stride));
-    const hotStartTimes = await sql(hotStartTimesSql(today));
+    const hotStartTimes = await sql(hotConnectQueryResponseTimesSql(today));
     const hotDataPoints = hotStartTimes.map(x => ({
       x: x.ts,
       y: Number(x.avg_hot_start_time),
@@ -123,7 +150,7 @@ export async function GET(req: NextRequest) {
     }));
     const summary = summaryRows.map(x => ({
         x: x.ts,
-        y: Number(x.avg),
+        y: Number(x.cold_start_connect_query_response_ms),
     }))
 
     return NextResponse.json({

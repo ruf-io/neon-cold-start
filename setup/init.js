@@ -9,7 +9,7 @@ require('dotenv').config();
  */
 const API_KEY = process.env["API_KEY"];
 const PROJECT_REGION = process.env["PROJECT_REGION"] || "aws-us-east-2";
-const PROJECT_NAME = process.env["PROJECT_NAME"] || "ColdStartBenchmarks";
+const PROJECT_NAME = process.env["PROJECT_NAME"] || "QueryLatencyBenchmarks";
 const DATABASE_NAME = process.env["DATABASE_NAME"] || "neondb";
 const ROLE_NAME = process.env["ROLE_NAME"] || "BenchmarkRole";
 
@@ -79,16 +79,17 @@ const initProject = async (apiClient, branches) => {
     await mainPool.query(`CREATE TABLE IF NOT EXISTS benchmarks (
         id INT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
         branch_id TEXT,
-        cold_query_ms INT,
-        hot_queries_ms INT[],
+        cold_start_connect_query_response_ms INT,
+        hot_connect_query_response_ms INT[],
+        hot_query_response_ms INT[],
         ts TIMESTAMP,
         driver TEXT,
         benchmark_run_id CHAR(36),
         CONSTRAINT fk_benchmark_runs FOREIGN KEY (benchmark_run_id)
-          REFERENCES benchmark_runs (id)
-          ON DELETE CASCADE
-          ON UPDATE CASCADE
-      );`
+            REFERENCES benchmark_runs (id)
+            ON DELETE CASCADE
+            ON UPDATE CASCADE
+    );`
     );
 
     for (const branch of branches) {

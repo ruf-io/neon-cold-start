@@ -2,7 +2,7 @@ import { formatFloatToStatString } from "@/components/stat";
 import React, { useEffect, useState } from "react";
 
 interface Props {
-    duration: number;
+    cold_start_connect_query_response_ms: number;
     altDuration: number;
 }
 

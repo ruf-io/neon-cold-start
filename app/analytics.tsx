@@ -13,6 +13,8 @@ export default function Analytics() {
     const [benchmarkPage, setBenchmarkPage] = useState(false);
     const [filter, setFilter] = useState<Filter>(Filter.Week);
     const { loading, error, data: benchmark } = useBenchmarks(filter);
+
+    
     
     const branchDatasets = useMemo<Array<ChartDataset<"line">>>(() => {
         if (benchmark) {
@@ -68,6 +70,9 @@ export default function Analytics() {
     }, [benchmark]);
     const onFilterChange = useCallback((newFilter: Filter) => setFilter(newFilter), []);
 
+
+    console.log('benchmark', benchmark)
+
     return (
         <section className="w-full flex flex-col gap-16">
             {loading &&
@@ -83,8 +88,8 @@ export default function Analytics() {
             <div className={`${(loading || error) ? "invisible" : "visible"}`}>
                 <div className='flex w-full flex-wrap'>
                     <div className='mb-10 flex-col'>
-                        <h2 className="font-bold text-3xl">Benchmark Summary</h2>
-                        <p className="text-base-content/70">Cold start times summarized across all tests and variants.</p>
+                        <h2 className="font-bold text-3xl">Cold Start Query Latency</h2>
+                        <p className="text-base-content/70">Time required to establish a connection to a suspended database, run a query, receive a response.</p>
                     </div>
                     <div className='ml-auto order-3 hidden'>
                         <DateFilter filter={filter} handleChange={onFilterChange} />
@@ -103,6 +108,7 @@ export default function Analytics() {
                     </div>
                     <div className="h-80 flex-1 w-full lg:w-auto">
                         <Chart
+                            title='big'
                             p50={p50}
                             p99={p99}
                             stdDev={stdDev}
@@ -111,6 +117,7 @@ export default function Analytics() {
                     </div>
                 </div>
             </div>
+
             <div>
                 <h3 className="text-2xl font-bold">Detailed Stats by Database Variant</h3>
                 <p className='text-base-content/70'>Cold start times for specific variations of Neon databases.</p>

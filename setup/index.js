@@ -29,7 +29,7 @@ const DRIVERS = {
  * Benchmark database
  */
 const API_KEY = process.env["API_KEY"];
-const PROJECT_NAME = process.env["PROJECT_NAME"] || "ColdStartBenchmarks";
+const PROJECT_NAME = process.env["PROJECT_NAME"] || "QueryLatencyBenchmarks";
 const DATABASE_NAME = process.env["DATABASE_NAME"] || "neondb";
 const ROLE_NAME = process.env["ROLE_NAME"] || "BenchmarkRole";
 const MAIN_BRANCH_NAME = process.env["BENCHMARK_BRANCH_NAME"] || "main";
@@ -316,7 +316,9 @@ const benchmarkProject = async ({ id: projectId }, apiClient, driver, runId) => 
             
             log(`Benchmarking branch ${branchName} with endpoint ${benchmarkEndpoint.id} with driver ${driver.name}.`)
     
-            // Run benchmark
+            // Run benchmarks
+
+            // Cold Starts
             const coldTimeStart = Date.now();
             const benchClient = new BenchmarkClient({
                 host: benchmarkEndpoint.host,
@@ -325,11 +327,11 @@ const benchmarkProject = async ({ id: projectId }, apiClient, driver, runId) => 
                 database: DATABASE_NAME,
                 ssl: true,
             });
-    
             await benchClient.connect();
             await benchClient.query(benchmarkQuery);
             const coldQueryMs = Date.now() - coldTimeStart;
 
+            // Hot Queries (where the connection is already active)
             const hotQueryTimes = []
             for (let i = 0; i < 10; i++) {
                 const start = Date.now();
@@ -338,11 +340,28 @@ const benchmarkProject = async ({ id: projectId }, apiClient, driver, runId) => 
             }
             await benchClient.end();
             
-            log(`Benchmark complete. Details ${branchName} / ${benchmarkEndpoint.id} / ${driver.name}. Cold ${coldQueryMs} / Hot ${hotQueryTimes.join(',')}`)
+            // Hot Queries (where the connection is already active)
+            const hotConnectQueryTimes = []
+            for (let i = 0; i < 10; i++) {
+                const start = Date.now();
+                const benchClient = new BenchmarkClient({
+                    host: benchmarkEndpoint.host,
+                    password: benchmarkRolePassword,
+                    user: ROLE_NAME,
+                    database: DATABASE_NAME,
+                    ssl: true,
+                });
+                await benchClient.connect();
+                await benchClient.query(benchmarkQuery);
+                hotConnectQueryTimes.push(Date.now() - start);
+                await benchClient.end();
+            }
+            
+            log(`Benchmark complete. Details ${branchName} / ${benchmarkEndpoint.id} / ${driver.name}. Cold ${coldQueryMs} / Hot Connect ${hotConnectQueryTimes.join(',')} / Hot ${hotQueryTimes.join(',')}`)
 
             await client.query(
-                "INSERT INTO benchmarks (branch_id, cold_query_ms, hot_queries_ms, ts, driver, benchmark_run_id) VALUES ($1, $2, $3, $4, $5, $6)",
-                [branchId, coldQueryMs, hotQueryTimes, new Date(), driver.name, runId]
+                "INSERT INTO benchmarks (branch_id, cold_start_connect_query_response_ms, hot_connect_query_response_ms, hot_query_response_ms, ts, driver, benchmark_run_id) VALUES ($1, $2, $3, $4, $5, $6, $7)",
+                [branchId, coldQueryMs, hotConnectQueryTimes, hotQueryTimes, new Date(), driver.name, runId]
             )
     
             await suspendProjectEndpoint(apiClient, projectId, benchmarkEndpoint.id, 5000);
