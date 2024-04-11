@@ -340,10 +340,9 @@ const benchmarkProject = async ({ id: projectId }, apiClient, driver, is_pooler,
             }
             await benchClient.end();
             
-            // Hot Queries (where the connection is already active)
+            // Hot Queries (where a connection must first be established)
             const hotConnectQueryTimes = []
             for (let i = 0; i < 10; i++) {
-                const start = Date.now();
                 const benchClient = new BenchmarkClient({
                     host: is_pooler ? benchmarkEndpoint.host.replace('.', '-pooler.') : benchmarkEndpoint.host,
                     password: benchmarkRolePassword,
@@ -351,6 +350,7 @@ const benchmarkProject = async ({ id: projectId }, apiClient, driver, is_pooler,
                     database: DATABASE_NAME,
                     ssl: true,
                 });
+                const start = Date.now();
                 await benchClient.connect();
                 await benchClient.query(benchmarkQuery);
                 hotConnectQueryTimes.push(Date.now() - start);

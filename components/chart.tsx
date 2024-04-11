@@ -40,27 +40,39 @@ interface Props {
 }
 
 const Chart = (props: Props) => {
-  const { title = "test", p50, p99, stdDev, chartData, minimalistic, activeSeries } = props;
+  const {
+    title = "test",
+    p50,
+    p99,
+    stdDev,
+    chartData,
+    minimalistic,
+    activeSeries,
+  } = props;
   const ref = useRef<ChartJS<"line">>(null);
 
   useEffect(() => {
     if (activeSeries && ref?.current?.data) {
-        //Find the matching dataset and set visibility
-        ref.current?.data.datasets?.forEach((dataset) => {
-            if (dataset.label === "Cold Start") {
-                dataset.hidden = !activeSeries.cold_start;
-            } else if (dataset.label === "Connect") {
-                dataset.hidden = !activeSeries.connect;
-            } else if (dataset.label === "Query") {
-                dataset.hidden = !activeSeries.query;
-            }
-        });
+      //Find the matching dataset and set visibility
+      ref.current?.data.datasets?.forEach((dataset) => {
+        if (dataset.label === "Cold Start") {
+          dataset.hidden = !activeSeries.cold_start;
+        } else if (dataset.label === "Connect") {
+          dataset.hidden = !activeSeries.connect;
+        } else if (dataset.label === "Query") {
+          dataset.hidden = !activeSeries.query;
+        }
+      });
     }
-    if(ref.current?.options?.scales?.y) {
-      ref.current.options.scales.y.suggestedMax = minimalistic? (activeSeries.cold_start ? 500 : 0) + (activeSeries.connect ? 400 : 0) : undefined;
+    if (ref.current?.options?.scales?.y) {
+      ref.current.options.scales.y.suggestedMax = minimalistic
+        ? (activeSeries.cold_start ? 500 : 0) +
+          (activeSeries.connect ? 400 : 0) +
+          (activeSeries.query ? 10 : 0)
+        : undefined;
     }
     ref.current?.update();
-}, [activeSeries]);
+  }, [activeSeries]);
 
   return (
     // Casting ref to avoid type issues over `ChartJSOrUndefined`.
@@ -134,7 +146,11 @@ const Chart = (props: Props) => {
           y: {
             stacked: true,
             beginAtZero: true,
-            suggestedMax: minimalistic? (activeSeries.cold_start ? 500 : 0) + (activeSeries.connect ? 400 : 0) : undefined,
+            suggestedMax: minimalistic
+              ? (activeSeries.cold_start ? 500 : 0) +
+                (activeSeries.connect ? 400 : 0) +
+                (activeSeries.query ? 10 : 0)
+              : undefined,
             grid: {
               display: false,
             },
