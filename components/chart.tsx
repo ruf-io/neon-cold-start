@@ -44,7 +44,7 @@ const Chart = (props: Props) => {
   const ref = useRef<ChartJS<"line">>(null);
 
   useEffect(() => {
-    if (activeSeries && ref && ref.current?.data) {
+    if (activeSeries && ref?.current?.data) {
         //Find the matching dataset and set visibility
         ref.current?.data.datasets?.forEach((dataset) => {
             if (dataset.label === "Cold Start") {
@@ -55,6 +55,9 @@ const Chart = (props: Props) => {
                 dataset.hidden = !activeSeries.query;
             }
         });
+    }
+    if(ref.current?.options?.scales?.y) {
+      ref.current.options.scales.y.suggestedMax = minimalistic? (activeSeries.cold_start ? 500 : 0) + (activeSeries.connect ? 400 : 0) : undefined;
     }
     ref.current?.update();
 }, [activeSeries]);
@@ -131,7 +134,7 @@ const Chart = (props: Props) => {
           y: {
             stacked: true,
             beginAtZero: true,
-            suggestedMax: minimalistic? 1000 : undefined,
+            suggestedMax: minimalistic? (activeSeries.cold_start ? 500 : 0) + (activeSeries.connect ? 400 : 0) : undefined,
             grid: {
               display: false,
             },

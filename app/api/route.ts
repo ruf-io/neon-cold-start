@@ -55,6 +55,7 @@ export async function GET() {
   minDate.setDate(minDate.getDate() - 7);
 
   const branches = await sql`SELECT id, name, description FROM branches;`;
+  console.log(branches);
   const rows = await sql(branchRowsSql(minDate, stride));
   const timings = ["cold_start", "connect", "query"];
   

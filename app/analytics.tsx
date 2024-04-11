@@ -44,7 +44,7 @@ export default function Analytics() {
               borderWidth: 1,
               tension: 0.25,
               borderColor: themeColors.secondary,
-              label: "Cold start",
+              label: "Cold Start",
               hidden: !activeSeries.cold_start,
               type: "line",
               fill: "start",
@@ -274,9 +274,8 @@ export default function Analytics() {
           <div className="card">
             <div className="card-body">
               <h3 className="card-title">Cold Starts</h3>
-              <p className="text-base-content/70">
-                Neon can autosuspend when idle and cold start upon
-                receiving a new connection. In this benchmark, a cold start adds{" "}
+              <p className="text-base-content/70 text-base">
+                Neon can autosuspend when idle and cold start when needed. In this benchmark, a cold start adds{" "}
                 <code className="text-neutral bg-neutral-content p-1 rounded">
                   ~{cold_start.p50}ms
                 </code>{" "}
@@ -293,11 +292,11 @@ export default function Analytics() {
               <h3 className="card-title">Connections</h3>
               <p className="text-base-content/70">
                 Connecting to Postgres requires a TCP handshake and SSL
-                negotiation. Connecting takes{" "}
+                negotiation. It takes{" "}
                 <code className="text-neutral bg-neutral-content p-1 rounded">
                   ~{connect.p50}ms
                 </code>{" "}
-                in this benchmark, so connecting and querying on a warm instance
+                in this benchmark. So connect + query on a warm instance
                 takes{" "}
                 <code className="text-neutral bg-neutral-content p-1 rounded">
                   ~{connect.p50 + query.p50}ms
