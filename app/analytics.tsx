@@ -267,7 +267,7 @@ export default function Analytics() {
           Detailed Stats by Database Variant
         </h3>
         <p className="text-base-content/70">
-          Cold start times for specific variations of Neon databases.
+          Query latencies for specific variations of Neon databases.
         </p>
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 pt-10">
           {benchmark &&

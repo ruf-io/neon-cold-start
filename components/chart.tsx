@@ -48,7 +48,7 @@ const Chart = (props: Props) => {
           legend: { display: false },
           annotation: {
             annotations:
-              minimalistic
+              1 === 1 //Disable annotations for now
                 ? {}
                 : {
                     p50: {
@@ -108,6 +108,7 @@ const Chart = (props: Props) => {
           y: {
             stacked: true,
             beginAtZero: true,
+            suggestedMax: minimalistic? 1000 : undefined,
             grid: {
               display: false,
             },
