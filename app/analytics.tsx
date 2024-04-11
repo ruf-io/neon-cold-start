@@ -1,14 +1,36 @@
 "use client";
-import { MouseEventHandler, useCallback, useMemo, useState } from "react";
-import Stat, { formatFloatToStatString } from "@/components/stat";
-import Chart, { themeColors } from "@/components/chart";
+import { ChangeEventHandler, useCallback, useMemo, useState } from "react";
+import Chart, { themeColors, ActiveSeries } from "@/components/chart";
 import { ChartData, ChartDataset, ScriptableContext } from "chart.js";
 import Error from "@/components/error";
 import useBenchmarks, { BranchBenchmark } from "@/hooks";
 import ChartStat from "@/components/chartStat";
 
+export enum Series {
+  connect,
+  query,
+  cold_start,
+}
+
 export default function Analytics() {
   const { loading, error, data: benchmark } = useBenchmarks();
+  const [activeSeries, setActiveSeries] = useState<ActiveSeries>({
+    connect: true,
+    query: true,
+    cold_start: false,
+  });
+
+  const onChange = useCallback<ChangeEventHandler<HTMLInputElement>>(
+    (e) => {
+      if (e.target.dataset.series && e.target.dataset.series in activeSeries) {
+        setActiveSeries({
+          ...activeSeries,
+          [e.target.dataset.series]: e.target.checked,
+        });
+      }
+    },
+    [activeSeries]
+  );
 
   const branchDatasets = useMemo<Array<Array<ChartDataset<"line">>>>(() => {
     if (benchmark) {
@@ -17,19 +39,20 @@ export default function Analytics() {
         (branch: BranchBenchmark) => {
           return [
             {
-              data: branch.query.points,
+              data: branch.cold_start.points,
               pointRadius: 0,
               borderWidth: 1,
               tension: 0.25,
-              borderColor: themeColors.accent,
-              label: "Query",
+              borderColor: themeColors.secondary,
+              label: "Cold start",
+              hidden: !activeSeries.cold_start,
               type: "line",
               fill: "start",
               backgroundColor: (context: ScriptableContext<"line">) => {
                 const ctx = context.chart.ctx;
                 const gradient = ctx.createLinearGradient(0, 0, 0, 60);
-                gradient.addColorStop(0, themeColors.accent + "2a");
-                gradient.addColorStop(1, themeColors.accent + "00");
+                gradient.addColorStop(0, themeColors.secondary + "2a");
+                gradient.addColorStop(1, themeColors.secondary + "00");
                 return gradient;
               },
             },
@@ -40,6 +63,7 @@ export default function Analytics() {
               tension: 0.25,
               borderColor: themeColors.primary,
               label: "Connect",
+              hidden: !activeSeries.connect,
               type: "line",
               fill: "start",
               backgroundColor: (context: ScriptableContext<"line">) => {
@@ -51,21 +75,16 @@ export default function Analytics() {
               },
             },
             {
-              data: branch.cold_start.points,
+              data: branch.query.points,
               pointRadius: 0,
               borderWidth: 1,
               tension: 0.25,
-              borderColor: themeColors.secondary,
-              label: "Cold start",
+              borderColor: themeColors.accent,
+              label: "Query",
+              hidden: !activeSeries.query,
               type: "line",
               fill: "start",
-              backgroundColor: (context: ScriptableContext<"line">) => {
-                const ctx = context.chart.ctx;
-                const gradient = ctx.createLinearGradient(0, 0, 0, 60);
-                gradient.addColorStop(0, themeColors.secondary + "2a");
-                gradient.addColorStop(1, themeColors.secondary + "00");
-                return gradient;
-              },
+              backgroundColor: "#00000000",
             },
           ];
         }
@@ -80,15 +99,22 @@ export default function Analytics() {
     if (benchmark) {
       return [
         {
-          data: benchmark ? benchmark.summary.query.points : [],
+          data: benchmark ? benchmark.summary.cold_start.points : [],
           pointRadius: 0,
           borderWidth: 2,
           tension: 0.25,
-          borderColor: themeColors.accent,
-          label: "Query",
+          borderColor: themeColors.secondary,
+          label: "Cold Start",
+          hidden: !activeSeries.cold_start,
           type: "line",
           fill: "start",
-          backgroundColor: themeColors.accent + "AA",
+          backgroundColor: (context: ScriptableContext<"line">) => {
+            const ctx = context.chart.ctx;
+            const gradient = ctx.createLinearGradient(0, 0, 0, 300);
+            gradient.addColorStop(0, themeColors.secondary + "44");
+            gradient.addColorStop(1, themeColors.secondary + "00");
+            return gradient;
+          },
         },
         {
           data: benchmark ? benchmark.summary.connect.points : [],
@@ -97,32 +123,28 @@ export default function Analytics() {
           tension: 0.25,
           borderColor: themeColors.primary,
           label: "Connect",
+          hidden: !activeSeries.connect,
           type: "line",
           fill: "start",
           backgroundColor: (context: ScriptableContext<"line">) => {
             const ctx = context.chart.ctx;
-            const gradient = ctx.createLinearGradient(0, 0, 0, 280);
-            gradient.addColorStop(0, themeColors.primary + "FF");
+            const gradient = ctx.createLinearGradient(0, 0, 0, 200);
+            gradient.addColorStop(0, themeColors.primary + "44");
             gradient.addColorStop(1, themeColors.primary + "00");
             return gradient;
           },
         },
         {
-          data: benchmark ? benchmark.summary.cold_start.points : [],
+          data: benchmark ? benchmark.summary.query.points : [],
           pointRadius: 0,
           borderWidth: 2,
           tension: 0.25,
-          borderColor: themeColors.secondary,
-          label: "Cold start",
+          borderColor: themeColors.accent,
+          label: "Query",
+          hidden: !activeSeries.query,
           type: "line",
           fill: "start",
-          backgroundColor: (context: ScriptableContext<"line">) => {
-            const ctx = context.chart.ctx;
-            const gradient = ctx.createLinearGradient(0, 0, 0, 240);
-            gradient.addColorStop(0, themeColors.secondary + "FF");
-            gradient.addColorStop(1, themeColors.secondary + "00");
-            return gradient;
-          },
+          backgroundColor: "#00000000",
         },
       ];
     }
@@ -153,7 +175,7 @@ export default function Analytics() {
   }, [benchmark]);
 
   return (
-    <section className="w-full flex flex-col gap-16">
+    <section className="w-full flex flex-col gap-20">
       {loading && (
         <div className="flex items-center justify-center h-96">
           <span className="loading loading-spinner loading-lg"></span>
@@ -170,41 +192,65 @@ export default function Analytics() {
             <tbody>
               <tr>
                 <td></td>
-                <td className="text-base-content/80">P50</td>
-                <td className="text-base-content/60">P99</td>
+                <td className="text-base-content/80"><span className="tooltip" data-tip="50th percentile (median) latency value.">P50</span></td>
+                <td className="text-base-content/60"><span className="tooltip" data-tip="99th percentile latency value.">P99</span></td>
               </tr>
-              <tr className="">
-                <td className="whitespace-nowrap flex items-center gap-2 justify-start">
-                  <span className="bg-secondary w-2 h-2 inline-block rounded"></span>
-                  Cold Start
+              <tr className={`transition-opacity ${!activeSeries.query ? 'opacity-50' : ''}`}>
+                <td>
+                  <label className="cursor-pointer flex gap-2 items-center whitespace-nowrap">
+                    <input
+                      type="checkbox"
+                      className="toggle toggle-xs toggle-accent"
+                      data-series="query"
+                      onChange={onChange}
+                      checked={activeSeries.query}
+                    />
+                    <span>Query</span>
+                  </label>
                 </td>
-                <td className="font-semibold">{cold_start.p50}ms</td>
-                <td className="text-base-content/60">{cold_start.p99}ms</td>
+                <td className="font-semibold">{query.p50}ms</td>
+                <td className="text-base-content/60">{query.p99}ms</td>
               </tr>
-              <tr>
-                <td className="whitespace-nowrap flex items-center gap-2 justify-start">
-                  <span className="bg-primary w-2 h-2 inline-block rounded"></span>
-                  Connect
+              <tr className={`transition-opacity ${!activeSeries.connect ? 'opacity-50' : ''}`}>
+                <td>
+                  <label className="cursor-pointer flex gap-2 items-center whitespace-nowrap">
+                    <input
+                      type="checkbox"
+                      className="toggle toggle-xs toggle-primary"
+                      data-series="connect"
+                      onChange={onChange}
+                      checked={activeSeries.connect}
+                    />
+                    <span>Connect</span>
+                  </label>
                 </td>
                 <td className="font-semibold">{connect.p50}ms</td>
                 <td className="text-base-content/60">{connect.p99}ms</td>
               </tr>
-              <tr>
-                <td className="whitespace-nowrap flex items-center gap-2 justify-start">
-                  <span className="bg-accent w-2 h-2 inline-block rounded"></span>
-                  Query
+              <tr className={`transition-opacity ${!activeSeries.cold_start ? 'opacity-50' : ''}`}>
+                <td>
+                  <label className="cursor-pointer flex gap-2 items-center whitespace-nowrap">
+                    <input
+                      type="checkbox"
+                      className="toggle toggle-xs toggle-secondary"
+                      data-series="cold_start"
+                      onChange={onChange}
+                      checked={activeSeries.cold_start}
+                    />
+                    <span>Cold Start</span>
+                  </label>
                 </td>
-                <td className="font-semibold">{query.p50}ms</td>
-                <td className="text-base-content/60">{query.p99}ms</td>
+                <td className="font-semibold">{cold_start.p50}ms</td>
+                <td className="text-base-content/60">{cold_start.p99}ms</td>
               </tr>
               <tr className="bg-base-200/20 dark:bg-neutral/60">
                 <th className="whitespace-nowrap flex items-center gap-2 justify-start">
                   <span className="w-2 h-2 inline-block rounded"></span>
                   Total
                 </th>
-                <th>{cold_start.p50 + connect.p50 + query.p50}ms</th>
+                <th>{(activeSeries.cold_start ? cold_start.p50 : 0) + (activeSeries.connect ? connect.p50 : 0) +  (activeSeries.query ? query.p50 : 0)}ms</th>
                 <th className="text-base-content/60">
-                  {cold_start.p99 + connect.p99 + query.p99}ms
+                {(activeSeries.cold_start ? cold_start.p99 : 0) + (activeSeries.connect ? connect.p99 : 0) +  (activeSeries.query ? query.p99 : 0)}ms
                 </th>
               </tr>
             </tbody>
@@ -216,50 +262,64 @@ export default function Analytics() {
               p99={cold_start.p99}
               stdDev={cold_start.stdDev}
               chartData={{ datasets: summaryDataset }}
+              activeSeries={activeSeries}
             />
           </div>
         </div>
       </div>
 
       <div>
-        <h3 className="text-2xl font-bold">
-          How to Read the Benchmarks
-        </h3>
-      <div className="grid grid-cols-2 xl:grid-cols-3">
-        <div className="card">
-          <div className="card-body">
-            <h3 className="card-title">Cold Starts</h3>
-            <p className="text-base-content/70">
-              Neon databases can autosuspend when idle and cold start upon
-              receiving a new connection. In this benchmark, a cold start adds{" "}
-              <code className="text-neutral-content bg-neutral p-1 rounded">~{cold_start.p50}ms</code> latency, resulting in the entire
-              query taking{" "}
-              <code className="text-neutral-content bg-neutral p-1 rounded">~{cold_start.p50 + connect.p50 + query.p50}ms</code>.
-            </p>
+        
+        <div className="grid grid-cols-2 xl:grid-cols-3">
+          <div className="card">
+            <div className="card-body">
+              <h3 className="card-title">Cold Starts</h3>
+              <p className="text-base-content/70">
+                Neon can autosuspend when idle and cold start upon
+                receiving a new connection. In this benchmark, a cold start adds{" "}
+                <code className="text-neutral bg-neutral-content p-1 rounded">
+                  ~{cold_start.p50}ms
+                </code>{" "}
+                latency, resulting in the entire query taking{" "}
+                <code className="text-neutral bg-neutral-content p-1 rounded">
+                  ~{cold_start.p50 + connect.p50 + query.p50}ms
+                </code>
+                .
+              </p>
+            </div>
+          </div>
+          <div className="card">
+            <div className="card-body">
+              <h3 className="card-title">Connections</h3>
+              <p className="text-base-content/70">
+                Connecting to Postgres requires a TCP handshake and SSL
+                negotiation. Connecting takes{" "}
+                <code className="text-neutral bg-neutral-content p-1 rounded">
+                  ~{connect.p50}ms
+                </code>{" "}
+                in this benchmark, so connecting and querying on a warm instance
+                takes{" "}
+                <code className="text-neutral bg-neutral-content p-1 rounded">
+                  ~{connect.p50 + query.p50}ms
+                </code>
+                .
+              </p>
+            </div>
+          </div>
+          <div className="card">
+            <div className="card-body">
+              <h3 className="card-title">Queries</h3>
+              <p className="text-base-content/70">
+                When a database is active and a connection is established, a
+                SELECT query fetching a row by primary key takes{" "}
+                <code className="text-neutral bg-neutral-content p-1 rounded">
+                  ~{query.p50}ms
+                </code>{" "}
+                in this benchmark.
+              </p>
+            </div>
           </div>
         </div>
-        <div className="card">
-          <div className="card-body">
-            <h3 className="card-title">Connections</h3>
-            <p className="text-base-content/70">
-              Connecting to Postgres requires a TCP handshake and SSL
-              negotiation. Connecting takes <code className="text-neutral-content bg-neutral p-1 rounded">~{connect.p50}ms</code> in
-              this benchmark, so connecting and querying on a warm instance
-              takes <code className="text-neutral-content bg-neutral p-1 rounded">~{connect.p50 + query.p50}ms</code>.
-            </p>
-          </div>
-        </div>
-        <div className="card">
-          <div className="card-body">
-            <h3 className="card-title">Queries</h3>
-            <p className="text-base-content/70">
-              When a database is active and a connection is established, a
-              SELECT query fetching a row by primary key takes{" "}
-              <code className="text-neutral-content bg-neutral p-1 rounded">~{query.p50}ms</code> in this benchmark.
-            </p>
-          </div>
-        </div>
-      </div>
       </div>
 
       <div>
@@ -276,6 +336,7 @@ export default function Analytics() {
                 key={branchBenchmark.name}
                 branchBenchmark={branchBenchmark}
                 datasets={branchDatasets[i]}
+                activeSeries={activeSeries}
               />
             ))}
         </div>

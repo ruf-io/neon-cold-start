@@ -1,16 +1,17 @@
 import { BranchBenchmark } from "@/hooks";
 import { ChartDataset } from "chart.js";
 import React from "react";
-import Chart from "./chart";
+import Chart, { ActiveSeries } from "@/components/chart";
 import { formatFloatToStatString } from "./stat";
 
 interface Props {
     branchBenchmark: BranchBenchmark;
     datasets: Array<ChartDataset<"line">>;
+    activeSeries: ActiveSeries;
 }
 
 const ChartStat = (props: Props) => {
-    const { branchBenchmark, datasets } = props;
+    const { branchBenchmark, datasets, activeSeries } = props;
     const {
         description,
         name,
@@ -35,6 +36,7 @@ const ChartStat = (props: Props) => {
                     p50={cold_start.p50}
                     chartData={{ datasets: datasets }}
                     minimalistic={true}
+                    activeSeries={activeSeries}
                 />
             </div>
             <div className="overflow-x-auto">
@@ -48,28 +50,28 @@ const ChartStat = (props: Props) => {
       </tr>
     </thead>
     <tbody>
-      <tr>
-        <td><span className="bg-secondary inline-block w-1.5 h-1.5 mr-2 rounded"></span>Cold Start</td>
+      <tr className={`transition-opacity ${!activeSeries.query ? 'opacity-50' : ''}`}>
+        <td><span className={`inline-block w-1.5 h-1.5 mr-2 -translate-y-0.5 rounded ${activeSeries.query ? 'bg-accent' : 'bg-neutral'}`}></span>Query</td>
+        <td>{query.p50}ms</td>
+        <td>{query.p99}ms</td>
+        <td>{query.stdDev}ms</td>
+      </tr>
+      <tr className={`transition-opacity ${!activeSeries.connect ? 'opacity-50' : ''}`}>
+        <td><span className={`inline-block w-1.5 h-1.5 mr-2 -translate-y-0.5 rounded ${activeSeries.connect ? 'bg-primary' : 'bg-neutral'}`}></span>Connect</td>
+        <td>{connect.p50}ms</td>
+        <td>{connect.p99}ms</td>
+        <td>{connect.stdDev}ms</td>
+      </tr>
+      <tr className={`transition-opacity ${!activeSeries.cold_start ? 'opacity-50' : ''}`}>
+        <td><span className={`inline-block w-1.5 h-1.5 mr-2 -translate-y-0.5 rounded ${activeSeries.cold_start ? 'bg-secondary' : 'bg-neutral'}`}></span>Cold Start</td>
         <td>{cold_start.p50}ms</td>
         <td>{cold_start.p99}ms</td>
         <td>{cold_start.stdDev}ms</td>
       </tr>
       <tr>
-        <td><span className="bg-primary inline-block w-1.5 h-1.5 mr-2 rounded"></span>Connect</td>
-        <td>{connect.p50}ms</td>
-        <td>{connect.p99}ms</td>
-        <td>{connect.stdDev}ms</td>
-      </tr>
-      <tr>
-        <td><span className="bg-accent inline-block w-1.5 h-1.5 mr-2 rounded"></span>Query</td>
-        <td>{query.p50}ms</td>
-        <td>{query.p99}ms</td>
-        <td>{query.stdDev}ms</td>
-      </tr>
-      <tr>
         <th><span className="inline-block w-1.5 h-1.5 mr-2 rounded"></span>Total</th>
-        <th>{cold_start.p50 + connect.p50 + query.p50}ms</th>
-        <th>{cold_start.p99 + connect.p99 + query.p99}ms</th>
+        <th>{(activeSeries.cold_start ? cold_start.p50 : 0) + (activeSeries.connect ? connect.p50 : 0) +  (activeSeries.query ? query.p50 : 0)}ms</th>
+        <th>{(activeSeries.cold_start ? cold_start.p99 : 0) + (activeSeries.connect ? connect.p99 : 0) +  (activeSeries.query ? query.p99 : 0)}ms</th>
       </tr>
     </tbody>
   </table>

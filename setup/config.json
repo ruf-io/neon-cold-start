@@ -28,15 +28,6 @@
             "benchmarkQuery": "SELECT * FROM series WHERE id = 100;"
         },
         {
-            "name": "Select Group",
-            "description": "Runs a group by, scanning a large amount of data.",
-            "setupQueries": [
-                "CREATE TABLE IF NOT EXISTS series (id INT GENERATED ALWAYS AS IDENTITY PRIMARY KEY, value TEXT);",
-                "INSERT INTO series (value) SELECT repeat('NEON', 300) from generate_series(0, 9000);"
-            ],
-            "benchmarkQuery": "SELECT id%10, count(*) FROM series GROUP BY 1;"
-        },
-        {
             "name": "Using Extensions",
             "description": "Runs a lookup by primary key on a database with 60 extensions installed.",
             "setupQueries": [
