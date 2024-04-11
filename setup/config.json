@@ -1,58 +1,44 @@
 {
     "branches": [
         {
-            "name": "Pure Cold Start",
+            "name": "Static Select",
             "description": "Uses `SELECT 1` as the query - no data is scanned.",
             "setupQueries": [
-                "CREATE TABLE IF NOT EXISTS series (serie_num TEXT);",
-                "INSERT INTO series SELECT repeat('W', 3000) from generate_series(0, 9000);",
-                "CREATE INDEX IF NOT EXISTS series_idx ON series (serie_num);"
+                "CREATE TABLE IF NOT EXISTS series (id INT GENERATED ALWAYS AS IDENTITY PRIMARY KEY, value TEXT);",
+                "INSERT INTO series (value) SELECT repeat('NEON', 300) from generate_series(0, 9000);"
             ],
             "benchmarkQuery": "SELECT 1;"
         },
         {
-            "name": "100 Megabytes",
-            "description": "Contains around 100MB of data stored.",
+            "name": "Select from 100MB Database",
+            "description": "Runs a lookup by primary key from 100MB database.",
             "setupQueries": [
-                "CREATE TABLE IF NOT EXISTS series (serie_num TEXT);",
-                "INSERT INTO series SELECT repeat('W', 3000) from generate_series(0, 900000);",
-                "CREATE INDEX IF NOT EXISTS series_idx ON series (serie_num);"
+                "CREATE TABLE IF NOT EXISTS series (id INT GENERATED ALWAYS AS IDENTITY PRIMARY KEY, value TEXT);",
+                "INSERT INTO series (value) SELECT repeat('NEON', 300) from generate_series(0, 400000);"
             ],
-            "benchmarkQuery": "SELECT * FROM series WHERE serie_num = '1000000';"
+            "benchmarkQuery": "SELECT * FROM series WHERE id = 10;"
         },
         {
-            "name": "500 Megabytes",
-            "description": "Contains around 500MB of data stored.",
+            "name": "Select from 5GB Database",
+            "description": "Runs a lookup by primary key from 5GB database.",
             "setupQueries": [
-                "CREATE TABLE IF NOT EXISTS series (serie_num TEXT);",
-                "INSERT INTO series SELECT repeat('W', 3000) from generate_series(0, 6000000);",
-                "CREATE INDEX IF NOT EXISTS series_idx ON series (serie_num);"
+                "CREATE TABLE IF NOT EXISTS series (id INT GENERATED ALWAYS AS IDENTITY PRIMARY KEY, value TEXT);",
+                "INSERT INTO series (value) SELECT repeat('NEON', 300) from generate_series(0, 4000000);"
             ],
-            "benchmarkQuery": "SELECT * FROM series WHERE serie_num = '1000000';"
+            "benchmarkQuery": "SELECT * FROM series WHERE id = 100;"
         },
         {
-            "name": "Group",
-            "description": "Runs a group by over a series of numbers.",
+            "name": "Select Group",
+            "description": "Runs a group by, scanning a large amount of data.",
             "setupQueries": [
-                "CREATE TABLE IF NOT EXISTS series (serie_num INT);",
-                "INSERT INTO series VALUES (generate_series(0, 1000));",
-                "CREATE INDEX IF NOT EXISTS series_idx ON series (serie_num);"
+                "CREATE TABLE IF NOT EXISTS series (id INT GENERATED ALWAYS AS IDENTITY PRIMARY KEY, value TEXT);",
+                "INSERT INTO series (value) SELECT repeat('NEON', 300) from generate_series(0, 9000);"
             ],
-            "benchmarkQuery": "SELECT serie_num FROM series GROUP BY serie_num;"
+            "benchmarkQuery": "SELECT id%10, count(*) FROM series GROUP BY 1;"
         },
         {
-            "name": "Select",
-            "description": "Runs a scan over a table.",
-            "setupQueries": [
-                "CREATE TABLE IF NOT EXISTS series (serie_num INT);",
-                "INSERT INTO series VALUES (generate_series(0, 1000));",
-                "CREATE INDEX IF NOT EXISTS series_idx ON series (serie_num);"
-            ],
-            "benchmarkQuery": "SELECT * FROM series;"
-        },
-        {
-            "name": "Extensions",
-            "description": "Contains around 60 extensions installed.",
+            "name": "Using Extensions",
+            "description": "Runs a lookup by primary key on a database with 60 extensions installed.",
             "setupQueries": [
                 "CREATE EXTENSION fuzzystrmatch;",
                 "CREATE EXTENSION address_standardizer;",
@@ -115,22 +101,10 @@
                 "CREATE EXTENSION \"unit\";",
                 "CREATE EXTENSION \"uuid-ossp\";",
                 "CREATE EXTENSION \"xml2\";",
-                "CREATE TABLE IF NOT EXISTS series (serie_num INT);",
-                "INSERT INTO series VALUES (generate_series(0, 1000));",
-                "CREATE INDEX IF NOT EXISTS series_idx ON series (serie_num);"
+                "CREATE TABLE IF NOT EXISTS series (id INT GENERATED ALWAYS AS IDENTITY PRIMARY KEY, value TEXT);",
+                "INSERT INTO series (value) SELECT repeat('NEON', 300) from generate_series(0, 9000);"
             ],
-            "benchmarkQuery": "SELECT * FROM series WHERE serie_num = 10;"
-        },
-        {
-            "name": "Timescale",
-            "description": "Contains the TimescaleDB extension installed.",
-            "setupQueries": [
-                "CREATE EXTENSION \"timescaledb\";",
-                "CREATE TABLE IF NOT EXISTS series (serie_num INT);",
-                "INSERT INTO series VALUES (generate_series(0, 1000));",
-                "CREATE INDEX IF NOT EXISTS series_idx ON series (serie_num);"
-            ],
-            "benchmarkQuery": "SELECT * FROM series WHERE serie_num = 10;"
+            "benchmarkQuery": "SELECT * FROM series WHERE id = 10;"
         }
     ]
 }

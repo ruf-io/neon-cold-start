@@ -1,35 +1,28 @@
-import { Filter, filtertoString } from '@/components/dateFilter';
 import { Point } from 'chart.js';
 import { useState, useEffect } from 'react';
-import {quantile, standardDeviation} from 'simple-statistics';
 
 interface Response<T> {
     data: T;
 };
 
-interface BranchDescription {
-    id: string,
-    name: string,
-    description: string,
-}
-
-export interface BranchPoint extends Point {
-    id: string;
-}
-
-export interface BranchBenchmark {
+interface BenchmarkData {
     p50: number;
     p99: number;
     stdDev: number;
-    sampleSize: number;
-    dataPoints: Array<Point>;
-    description: string;
+    points: Array<Point>;
+}
+
+export interface BranchBenchmark {
     name: string;
+    description: string;
+    cold_start: BenchmarkData;
+    connect: BenchmarkData;
+    query: BenchmarkData;
 }
 
 export interface Benchmark {
-    branches: Array<BranchBenchmark>,
-    summary: BranchBenchmark,
+    summary: BranchBenchmark;
+    branches: Array<BranchBenchmark>;
 }
 
 export interface State<T> {
@@ -38,44 +31,8 @@ export interface State<T> {
     data?: T;
 }
 
-const processBranchDatapoint = (branch: BranchBenchmark, dataPoint: BranchPoint | Point) => {
-    branch.dataPoints.push(dataPoint);
-}
-
-const initBenchmark = (
-    id: string,
-    name?: string,
-    description?: string,
-    branchDescriptions?: Array<BranchDescription>
-): BranchBenchmark => {
-    if (branchDescriptions) {
-        const branchDescription = branchDescriptions.find(x => x.id === id);
-        if (branchDescription) {
-            return {
-                p50: 0,
-                p99: 0,
-                stdDev: 0,
-                sampleSize: 0,
-                dataPoints: [],
-                description: branchDescription.description,
-                name: branchDescription.name
-            };
-        }
-    }
-
-    return {
-        p50: 0,
-        p99: 0,
-        stdDev: 0,
-        sampleSize: 0,
-        dataPoints: [],
-        description: description || "",
-        name: name || ""
-    };
-}
-
 // Define the custom hook
-const useBenchmarks = (filter: Filter) => {
+const useBenchmarks = () => {
     // Define state management inside the hook
     const [state, setState] = useState<State<Benchmark>>({
         loading: true,
@@ -86,48 +43,15 @@ const useBenchmarks = (filter: Filter) => {
     useEffect(() => {
         const asyncOp = async () => {
             try {
-                const res = await fetch(`/api?query=${filtertoString(filter)}`);
-                const { data }: Response<{
-                    dataPoints: Array<BranchPoint>,
-                    summary: Array<Point>,
-                    branches: Array<BranchDescription>
-                }> = await res.json();
-                const { dataPoints, summary: summaryDataPoints, branches: branchDescriptions } = data;
+                const res = await fetch(`/api`);
+                const { data }: Response<Array<BranchBenchmark>> = await res.json();
 
-                // Calculate sum, min, max.
-                const branchesRecord: Record<string, BranchBenchmark> = {};
-                const summaryBenchmark: BranchBenchmark = initBenchmark("", "Summary", "Contains a summary for all the branches.");
-                summaryDataPoints.forEach((dataPoint) => {
-                    processBranchDatapoint(summaryBenchmark, dataPoint);
-                });
-                dataPoints.forEach(dataPoint => {
-                    const { id } = dataPoint;
-                    const branch = branchesRecord[id] || initBenchmark(id, undefined, undefined, branchDescriptions);
-                    processBranchDatapoint(branch, dataPoint);
-
-                    // Re-assign in case of creation.
-                    branchesRecord[id] = branch;
-                });
-
-                const branches: Array<BranchBenchmark> = Object.keys(branchesRecord).map(x => ({
-                    ...branchesRecord[x],
-                    p50: quantile(branchesRecord[x].dataPoints.map(x => x.y), 0.5),
-                    stdDev: standardDeviation(branchesRecord[x].dataPoints.map(x => x.y)),
-                    p99: quantile(branchesRecord[x].dataPoints.map(x => x.y), 0.99),
-                    sampleSize: branchesRecord[x].dataPoints.length,
-                }));
-                summaryBenchmark.p50 = quantile(summaryBenchmark.dataPoints.map(x => x.y), 0.5);
-                summaryBenchmark.stdDev = standardDeviation(summaryBenchmark.dataPoints.map(x => x.y));
-                summaryBenchmark.p99 = quantile(summaryBenchmark.dataPoints.map(x => x.y), 0.99);
-                summaryBenchmark.sampleSize = summaryBenchmark.dataPoints.length;
-
-                // Set the state with the fetched and processed data
                 setState({
                     loading: false,
                     error: undefined,
                     data: {
-                        branches,
-                        summary: summaryBenchmark
+                        summary: data.filter((d) => d.name === "Select from 100MB Database")[0],
+                        branches: data,
                     },
                 });
             } catch (err) {
@@ -142,7 +66,7 @@ const useBenchmarks = (filter: Filter) => {
         };
 
         asyncOp();
-    }, [filter]);
+    }, []);
 
     return state;
 }

@@ -9,7 +9,7 @@ require('dotenv').config();
  */
 const API_KEY = process.env["API_KEY"];
 const PROJECT_REGION = process.env["PROJECT_REGION"] || "aws-us-east-2";
-const PROJECT_NAME = process.env["PROJECT_NAME"] || "QueryLatencyBenchmarks";
+const PROJECT_NAME = process.env["PROJECT_NAME"] || "QueryBenchmarks";
 const DATABASE_NAME = process.env["DATABASE_NAME"] || "neondb";
 const ROLE_NAME = process.env["ROLE_NAME"] || "BenchmarkRole";
 
@@ -57,6 +57,9 @@ const initProject = async (apiClient, branches) => {
                 role_name: ROLE_NAME,
                 database_name: DATABASE_NAME
             },
+            default_endpoint_settings: {
+                autoscaling_limit_min_cu: 0.25
+            }
         }
     });
     const {
@@ -84,6 +87,7 @@ const initProject = async (apiClient, branches) => {
         hot_query_response_ms INT[],
         ts TIMESTAMP,
         driver TEXT,
+        is_pooler BOOLEAN,
         benchmark_run_id CHAR(36),
         CONSTRAINT fk_benchmark_runs FOREIGN KEY (benchmark_run_id)
             REFERENCES benchmark_runs (id)

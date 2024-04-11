@@ -11,13 +11,13 @@ export default function Home() {
       {/* Header */}
       <section className="flex flex-col lg:flex-row w-full items-center justify-between gap-4">
         <div>
-          <h1 className="text-5xl font-bold">Neon Cold Start Benchmarks</h1>
-          <div className="mt-4 max-w-[532px] text-base-content/70">
-            <a className="link link-info" href="https://neon.tech">
+          <h1 className="text-5xl font-bold">Neon Query Benchmarks</h1>
+          <div className="mt-4 max-w-2xl text-base-content/70">
+            An open-source project tracking real-world experience for query latency on 
+            {' '}<a className="link link-info" href="https://neon.tech">
               Neon Postgres
-            </a>{" "}
-            databases can autosuspend when idle and <em>cold start</em>{" "}
-            automatically upon receiving a connection. How fast are cold starts?
+            </a>.
+
           </div>
         </div>
         <a

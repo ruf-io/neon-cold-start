@@ -29,7 +29,7 @@ const DRIVERS = {
  * Benchmark database
  */
 const API_KEY = process.env["API_KEY"];
-const PROJECT_NAME = process.env["PROJECT_NAME"] || "QueryLatencyBenchmarks";
+const PROJECT_NAME = process.env["PROJECT_NAME"] || "QueryBenchmarks";
 const DATABASE_NAME = process.env["DATABASE_NAME"] || "neondb";
 const ROLE_NAME = process.env["ROLE_NAME"] || "BenchmarkRole";
 const MAIN_BRANCH_NAME = process.env["BENCHMARK_BRANCH_NAME"] || "main";
@@ -266,7 +266,7 @@ async function createBenchmarkRun (apiClient, projectId, runId) {
  * @returns {Promise<void>} A promise that resolves when the benchmarking process is complete,
  * indicating that no value is returned but the side effects (benchmarking the project) have been completed.
  */
-const benchmarkProject = async ({ id: projectId }, apiClient, driver, runId) => {
+const benchmarkProject = async ({ id: projectId }, apiClient, driver, is_pooler, runId) => {
     const benchQueue = new PQueue({ concurrency: 1 });
     log(`Starting benchmark for project ${projectId} using driver ${driver.name}.`);
 
@@ -279,7 +279,7 @@ const benchmarkProject = async ({ id: projectId }, apiClient, driver, runId) => 
     await waitProjectOpFinished(apiClient, projectId);
     const mainConfig = config[MAIN_BRANCH_NAME];
     const client = new PgClient({
-        host: mainConfig.endpoint.host,
+        host: is_pooler ? mainConfig.endpoint.host.replace('.', '-pooler.') : mainConfig.endpoint.host,
         password: mainConfig.password,
         user: ROLE_NAME,
         database: DATABASE_NAME,
@@ -314,14 +314,14 @@ const benchmarkProject = async ({ id: projectId }, apiClient, driver, runId) => 
                 await waitEndpointIdle(apiClient, projectId, benchmarkEndpoint.id);
             }
             
-            log(`Benchmarking branch ${branchName} with endpoint ${benchmarkEndpoint.id} with driver ${driver.name}.`)
+            log(`Benchmarking branch ${branchName} with endpoint ${benchmarkEndpoint.host} with driver ${driver.name}.`)
     
             // Run benchmarks
 
             // Cold Starts
             const coldTimeStart = Date.now();
             const benchClient = new BenchmarkClient({
-                host: benchmarkEndpoint.host,
+                host: is_pooler ? benchmarkEndpoint.host.replace('.', '-pooler.') : benchmarkEndpoint.host,
                 password: benchmarkRolePassword,
                 user: ROLE_NAME,
                 database: DATABASE_NAME,
@@ -345,7 +345,7 @@ const benchmarkProject = async ({ id: projectId }, apiClient, driver, runId) => 
             for (let i = 0; i < 10; i++) {
                 const start = Date.now();
                 const benchClient = new BenchmarkClient({
-                    host: benchmarkEndpoint.host,
+                    host: is_pooler ? benchmarkEndpoint.host.replace('.', '-pooler.') : benchmarkEndpoint.host,
                     password: benchmarkRolePassword,
                     user: ROLE_NAME,
                     database: DATABASE_NAME,
@@ -360,8 +360,8 @@ const benchmarkProject = async ({ id: projectId }, apiClient, driver, runId) => 
             log(`Benchmark complete. Details ${branchName} / ${benchmarkEndpoint.id} / ${driver.name}. Cold ${coldQueryMs} / Hot Connect ${hotConnectQueryTimes.join(',')} / Hot ${hotQueryTimes.join(',')}`)
 
             await client.query(
-                "INSERT INTO benchmarks (branch_id, cold_start_connect_query_response_ms, hot_connect_query_response_ms, hot_query_response_ms, ts, driver, benchmark_run_id) VALUES ($1, $2, $3, $4, $5, $6, $7)",
-                [branchId, coldQueryMs, hotConnectQueryTimes, hotQueryTimes, new Date(), driver.name, runId]
+                "INSERT INTO benchmarks (branch_id, cold_start_connect_query_response_ms, hot_connect_query_response_ms, hot_query_response_ms, ts, driver, is_pooler, benchmark_run_id) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)",
+                [branchId, coldQueryMs, hotConnectQueryTimes, hotQueryTimes, new Date(), driver.name, is_pooler, runId]
             )
     
             await suspendProjectEndpoint(apiClient, projectId, benchmarkEndpoint.id, 5000);
@@ -399,11 +399,11 @@ exports.handler = async () => {
     await createBenchmarkRun(apiClient, project.id, runId);
 
     log(`Starting benchmarking (ID: ${runId}) drivers ${drivers}`)
-    await benchmarkProject(project, apiClient, DRIVERS.NODE_POSTGRES_CLIENT, runId);
+    await benchmarkProject(project, apiClient, DRIVERS.NODE_POSTGRES_CLIENT, false, runId);
     
-    log('Waiting 1 minute before testing next driver...')
+    log('Waiting 60 seconds before testing pooled...')
     await sleep(60 * 1000)
 
-    await benchmarkProject(project, apiClient, DRIVERS.NEON_SERVERLESS_CLIENT, runId);
-    log(`Finished benchmarking (ID: ${runId}) drivers ${drivers}`)
+    await benchmarkProject(project, apiClient, DRIVERS.NODE_POSTGRES_CLIENT, true, runId);
+    
 }
