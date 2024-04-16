@@ -26,9 +26,7 @@ function branchRowsSql(minDate: Date, stride: string) {
             unnest(b.hot_connect_query_response_ms) AS unnest_hot_connect_query_response_ms,
             unnest(b.hot_query_response_ms) AS unnest_hot_query_response_ms
         WHERE
-            b.driver = 'node-postgres (Client)'
-            AND is_pooler = true
-            AND br.ts > '${minDate.toISOString()}'::timestamp
+            br.ts > '${minDate.toISOString()}'::timestamp
         GROUP BY
             1, 2
         ORDER BY
@@ -54,8 +52,7 @@ export async function GET() {
   let stride = "30 minutes";
   minDate.setDate(minDate.getDate() - 7);
 
-  const branches = await sql`SELECT id, name, description FROM branches;`;
-  console.log(branches);
+  const branches = await sql`SELECT id, name, description, driver, pooled_connection, minCU FROM branches;`;
   const rows = await sql(branchRowsSql(minDate, stride));
   const timings = ["cold_start", "connect", "query"];
   
@@ -87,6 +84,11 @@ export async function GET() {
         dataSet.stdDev = Math.round(standardDeviation(values));
       }
     });
+
+    //Connect metrics for serverless driver are not applicable
+    if(dataSets[key].name === "Select via Serverless Driver") {
+      dataSets[key].connect = { points: [], p50: 0, p99: 0, stdDev: 0 };
+    }
   });
 
   return NextResponse.json(

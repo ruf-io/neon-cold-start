@@ -58,7 +58,8 @@ const initProject = async (apiClient, branches) => {
                 database_name: DATABASE_NAME
             },
             default_endpoint_settings: {
-                autoscaling_limit_min_cu: 0.25
+                autoscaling_limit_min_cu: 0.25,
+                autoscaling_limit_max_cu: 0.25
             }
         }
     });
@@ -73,7 +74,7 @@ const initProject = async (apiClient, branches) => {
     // Using the connect uri in the Pool fails, but using the parse fixes the issue.
     const config = parse(mainConnectionUri);
     const mainPool = new Pool(config);
-    await mainPool.query("CREATE TABLE IF NOT EXISTS branches (id TEXT, name TEXT, description TEXT);");
+    await mainPool.query("CREATE TABLE IF NOT EXISTS branches (id TEXT, name TEXT, description TEXT, setupQueries TEXT, benchmarkQuery TEXT, driver TEXT, pooled_connection BOOLEAN, minCU FLOAT);");
     await mainPool.query(`CREATE TABLE IF NOT EXISTS benchmark_runs (
         id CHAR(36) PRIMARY KEY,
         ts TIMESTAMP
@@ -87,7 +88,7 @@ const initProject = async (apiClient, branches) => {
         hot_query_response_ms INT[],
         ts TIMESTAMP,
         driver TEXT,
-        is_pooler BOOLEAN,
+        pooled_connection BOOLEAN,
         benchmark_run_id CHAR(36),
         CONSTRAINT fk_benchmark_runs FOREIGN KEY (benchmark_run_id)
             REFERENCES benchmark_runs (id)
@@ -103,9 +104,12 @@ const initProject = async (apiClient, branches) => {
             name,
             description,
             setupQueries,
-            benchmarkQuery
+            benchmarkQuery,
+            driver,
+            pooled_connection,
+            minCU
         } = branch;
-        console.log("Creating branch: ", name);
+        console.log("Creating branch: ", name, minCU);
 
         if (!name || !description || !setupQueries || !benchmarkQuery) {
             throw new Error("Configuration file has missing fields.");
@@ -119,7 +123,9 @@ const initProject = async (apiClient, branches) => {
                 database_name: DATABASE_NAME,
             },
             endpoints: [{
-                type: "read_write"
+                type: "read_write",
+                autoscaling_limit_min_cu: minCU,
+                autoscaling_limit_max_cu: minCU,
             }]
         });
         const {
@@ -147,7 +153,7 @@ const initProject = async (apiClient, branches) => {
 
         // Store the configuration in the main branch.
         const { id } = benchmarkBranch;
-        await mainPool.query("INSERT INTO branches VALUES ($1, $2, $3)", [id, name, description]);
+        await mainPool.query("INSERT INTO branches VALUES ($1, $2, $3, $4, $5, $6, $7, $8)", [id, name, description, setupQueries, benchmarkQuery, driver, pooled_connection, minCU]);
     }
 
     console.log("\n**IMPORTANT**");

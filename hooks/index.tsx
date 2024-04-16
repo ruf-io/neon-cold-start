@@ -1,74 +1,80 @@
-import { Point } from 'chart.js';
-import { useState, useEffect } from 'react';
+import { Point } from "chart.js";
+import { useState, useEffect } from "react";
 
 interface Response<T> {
-    data: T;
-};
+  data: T;
+}
 
 interface BenchmarkData {
-    p50: number;
-    p99: number;
-    stdDev: number;
-    points: Array<Point>;
+  p50: number;
+  p99: number;
+  stdDev: number;
+  points: Array<Point>;
 }
 
 export interface BranchBenchmark {
-    name: string;
-    description: string;
-    cold_start: BenchmarkData;
-    connect: BenchmarkData;
-    query: BenchmarkData;
+  name: string;
+  description: string;
+  cold_start: BenchmarkData;
+  connect: BenchmarkData;
+  query: BenchmarkData;
 }
 
 export interface Benchmark {
-    summary: BranchBenchmark;
-    branches: Array<BranchBenchmark>;
+  summary: BranchBenchmark;
+  branches: Array<BranchBenchmark>;
 }
 
 export interface State<T> {
-    loading: boolean;
-    error?: string;
-    data?: T;
+  loading: boolean;
+  error?: string;
+  data?: T;
 }
 
 // Define the custom hook
 const useBenchmarks = () => {
-    // Define state management inside the hook
-    const [state, setState] = useState<State<Benchmark>>({
-        loading: true,
-        error: undefined,
-        data: undefined,
-    });
+  // Define state management inside the hook
+  const [state, setState] = useState<State<Benchmark>>({
+    loading: true,
+    error: undefined,
+    data: undefined,
+  });
 
-    useEffect(() => {
-        const asyncOp = async () => {
-            try {
-                const res = await fetch(`/api`);
-                const { data }: Response<Array<BranchBenchmark>> = await res.json();
+  useEffect(() => {
+    const asyncOp = async () => {
+      try {
+        const res = await fetch(`/api`, {
+          next: {
+            revalidate: 900,
+          },
+        });
+        const { data }: Response<Array<BranchBenchmark>> = await res.json();
 
-                setState({
-                    loading: false,
-                    error: undefined,
-                    data: {
-                        summary: data.filter((d) => d.name === "Select from 100MB Database")[0],
-                        branches: data,
-                    },
-                });
-            } catch (err) {
-                console.error(err);
-                // Handle error
-                setState({
-                    loading: false,
-                    error: typeof err === "string" ? err : JSON.stringify(err),
-                    data: undefined
-                });
-            }
-        };
+        setState({
+          loading: false,
+          error: undefined,
+          data: {
+            summary: data.filter(
+              (d) => d.name === "Select from 100MB Database"
+            )[0],
+            branches: data,
+          },
+        });
+      } catch (err) {
+        console.error(err);
+        // Handle error
+        setState({
+          loading: false,
+          error: typeof err === "string" ? err : JSON.stringify(err),
+          data: undefined,
+        });
+      }
+    };
 
-        asyncOp();
-    }, []);
+    asyncOp();
+  }, []);
 
-    return state;
-}
+  return state;
+};
 
 export default useBenchmarks;

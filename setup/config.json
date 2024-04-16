@@ -7,7 +7,10 @@
                 "CREATE TABLE IF NOT EXISTS series (id INT GENERATED ALWAYS AS IDENTITY PRIMARY KEY, value TEXT);",
                 "INSERT INTO series (value) SELECT repeat('NEON', 300) from generate_series(0, 9000);"
             ],
-            "benchmarkQuery": "SELECT 1;"
+            "benchmarkQuery": "SELECT 1;",
+            "driver": "pg",
+            "pooled_connection": false,
+            "minCU": 0.25
         },
         {
             "name": "Select from 100MB Database",
@@ -16,7 +19,11 @@
                 "CREATE TABLE IF NOT EXISTS series (id INT GENERATED ALWAYS AS IDENTITY PRIMARY KEY, value TEXT);",
                 "INSERT INTO series (value) SELECT repeat('NEON', 300) from generate_series(0, 400000);"
             ],
-            "benchmarkQuery": "SELECT * FROM series WHERE id = 10;"
+            "benchmarkQuery": "SELECT * FROM series WHERE id = 10;",
+            "driver": "pg",
+            "pooled_connection": false,
+            "is_default": true,
+            "minCU": 0.25
         },
         {
             "name": "Select from 5GB Database",
@@ -25,7 +32,10 @@
                 "CREATE TABLE IF NOT EXISTS series (id INT GENERATED ALWAYS AS IDENTITY PRIMARY KEY, value TEXT);",
                 "INSERT INTO series (value) SELECT repeat('NEON', 300) from generate_series(0, 4000000);"
             ],
-            "benchmarkQuery": "SELECT * FROM series WHERE id = 100;"
+            "benchmarkQuery": "SELECT * FROM series WHERE id = 100;",
+            "driver": "pg",
+            "pooled_connection": false,
+            "minCU": 0.25
         },
         {
             "name": "Using Extensions",
@@ -95,7 +105,46 @@
                 "CREATE TABLE IF NOT EXISTS series (id INT GENERATED ALWAYS AS IDENTITY PRIMARY KEY, value TEXT);",
                 "INSERT INTO series (value) SELECT repeat('NEON', 300) from generate_series(0, 9000);"
             ],
-            "benchmarkQuery": "SELECT * FROM series WHERE id = 10;"
+            "benchmarkQuery": "SELECT * FROM series WHERE id = 10;",
+            "driver": "pg",
+            "pooled_connection": false,
+            "minCU": 0.25
+        },
+        {
+            "name": "Select via Serverless Driver",
+            "description": "Uses the serverless driver to lookup by primary key from 100MB database.",
+            "setupQueries": [
+                "CREATE TABLE IF NOT EXISTS series (id INT GENERATED ALWAYS AS IDENTITY PRIMARY KEY, value TEXT);",
+                "INSERT INTO series (value) SELECT repeat('NEON', 300) from generate_series(0, 400000);"
+            ],
+            "benchmarkQuery": "SELECT * FROM series WHERE id = 10;",
+            "driver": "neon",
+            "pooled_connection": true,
+            "minCU": 0.25
+        },
+        {
+            "name": "Select via Pooled Connection",
+            "description": "Uses the pooled connection to lookup by primary key from 100MB database.",
+            "setupQueries": [
+                "CREATE TABLE IF NOT EXISTS series (id INT GENERATED ALWAYS AS IDENTITY PRIMARY KEY, value TEXT);",
+                "INSERT INTO series (value) SELECT repeat('NEON', 300) from generate_series(0, 400000);"
+            ],
+            "benchmarkQuery": "SELECT * FROM series WHERE id = 10;",
+            "driver": "pg",
+            "pooled_connection": true,
+            "minCU": 0.25
+        },
+        {
+            "name": "Select on a larger compute",
+            "description": "Runs a lookup by primary key on a database that is set to default to 2 CU.",
+            "setupQueries": [
+                "CREATE TABLE IF NOT EXISTS series (id INT GENERATED ALWAYS AS IDENTITY PRIMARY KEY, value TEXT);",
+                "INSERT INTO series (value) SELECT repeat('NEON', 300) from generate_series(0, 400000);"
+            ],
+            "benchmarkQuery": "SELECT * FROM series WHERE id = 10;",
+            "driver": "pg",
+            "pooled_connection": false,
+            "minCU": 2
         }
     ]
 }

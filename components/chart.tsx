@@ -1,6 +1,6 @@
 import React, { useEffect, useRef } from "react";
 import { Line } from "react-chartjs-2";
-import { ChartData, ChartDataset, Point, ScriptableContext } from "chart.js";
+import { ChartData } from "chart.js";
 import { Chart as ChartJS, registerables } from "chart.js";
 import annotationPlugin from "chartjs-plugin-annotation";
 import "chartjs-adapter-date-fns";
@@ -8,13 +8,13 @@ import resolveConfig from "tailwindcss/resolveConfig";
 import tailwindConfigRaw from "@/tailwind.config.ts";
 
 const tailwindConfig = resolveConfig(tailwindConfigRaw);
-let currentTheme = "neon_light";
+let currentTheme = "light";
 if (
   typeof window !== "undefined" &&
   window.matchMedia &&
   window.matchMedia("(prefers-color-scheme: dark)").matches
 ) {
-  currentTheme = "neon_dark";
+  currentTheme = "dark";
 }
 export const themeColors = tailwindConfig.daisyui.themes[0][currentTheme];
 

@@ -70,7 +70,7 @@ const config: Config = {
     daisyui: {
         themes: [
             {
-                neon_light: {
+                light: {
                     "color-scheme": "light",
                     "primary": "#47d18c",
                     "secondary": "#5bc0d7",
@@ -83,7 +83,7 @@ const config: Config = {
                     "warning": "#EE8133",
                     "error": "#E93F33",
                 },
-                neon_dark: {
+                dark: {
                     "color-scheme": "dark",
                     "primary": "#00e599",
                     "secondary": "#ade0eb",
@@ -91,6 +91,7 @@ const config: Config = {
                     "neutral": "#1a1a1a",
                     "neutral-content": "#f9f7fd",
                     "base-100": "#000000",
+                    "base-200": "#333333",
                     "base-content": "#f9f7fd",
                     "info": "#53c0f3",
                     "info-content": "#201047",
@@ -103,7 +104,7 @@ const config: Config = {
                 },
             },
         ],
-        darkTheme: "neon_dark",
+        darkTheme: "dark",
     },
 };
 export default config;

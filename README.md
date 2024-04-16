@@ -99,7 +99,7 @@ CREATE TABLE IF NOT EXISTS benchmarks (
     hot_query_response_ms INT[],  -- Array of the timing of repeated hot query/responses
     ts TIMESTAMP,  -- when the benchmark started running
     driver TEXT, -- which driver was used, 'node-postgres (Client)' or '@neondatabase/serverless (Client)'
-    is_pooler BOOLEAN, -- whether or not the connection was via the pooled host or standard
+    pooled_connection BOOLEAN, -- whether or not the connection was via the pooled host or standard
     benchmark_run_id CHAR(36),
     CONSTRAINT fk_benchmark_runs FOREIGN KEY (benchmark_run_id)
         REFERENCES benchmark_runs (id)

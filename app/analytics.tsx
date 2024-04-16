@@ -1,6 +1,7 @@
 "use client";
 import { ChangeEventHandler, useCallback, useMemo, useState } from "react";
 import Chart, { themeColors, ActiveSeries } from "@/components/chart";
+import BarChart from "@/components/barChart";
 import { ChartData, ChartDataset, ScriptableContext } from "chart.js";
 import Error from "@/components/error";
 import useBenchmarks, { BranchBenchmark } from "@/hooks";
@@ -17,7 +18,7 @@ export default function Analytics() {
   const [activeSeries, setActiveSeries] = useState<ActiveSeries>({
     connect: true,
     query: true,
-    cold_start: false,
+    cold_start: true,
   });
 
   const onChange = useCallback<ChangeEventHandler<HTMLInputElement>>(
@@ -39,22 +40,16 @@ export default function Analytics() {
         (branch: BranchBenchmark) => {
           return [
             {
-              data: branch.cold_start.points,
+              data: branch.query.points,
               pointRadius: 0,
               borderWidth: 1,
               tension: 0.25,
-              borderColor: themeColors.secondary,
-              label: "Cold Start",
-              hidden: !activeSeries.cold_start,
+              borderColor: themeColors.accent,
+              label: "Query",
+              hidden: !activeSeries.query,
               type: "line",
               fill: "start",
-              backgroundColor: (context: ScriptableContext<"line">) => {
-                const ctx = context.chart.ctx;
-                const gradient = ctx.createLinearGradient(0, 0, 0, 60);
-                gradient.addColorStop(0, themeColors.secondary + "2a");
-                gradient.addColorStop(1, themeColors.secondary + "00");
-                return gradient;
-              },
+              backgroundColor: "#00000000",
             },
             {
               data: branch.connect.points,
@@ -75,16 +70,22 @@ export default function Analytics() {
               },
             },
             {
-              data: branch.query.points,
+              data: branch.cold_start.points,
               pointRadius: 0,
               borderWidth: 1,
               tension: 0.25,
-              borderColor: themeColors.accent,
-              label: "Query",
-              hidden: !activeSeries.query,
+              borderColor: themeColors.secondary,
+              label: "Cold Start",
+              hidden: !activeSeries.cold_start,
               type: "line",
               fill: "start",
-              backgroundColor: "#00000000",
+              backgroundColor: (context: ScriptableContext<"line">) => {
+                const ctx = context.chart.ctx;
+                const gradient = ctx.createLinearGradient(0, 0, 0, 60);
+                gradient.addColorStop(0, themeColors.secondary + "2a");
+                gradient.addColorStop(1, themeColors.secondary + "00");
+                return gradient;
+              },
             },
           ];
         }
@@ -99,22 +100,16 @@ export default function Analytics() {
     if (benchmark) {
       return [
         {
-          data: benchmark ? benchmark.summary.cold_start.points : [],
+          data: benchmark ? benchmark.summary.query.points : [],
           pointRadius: 0,
           borderWidth: 2,
           tension: 0.25,
-          borderColor: themeColors.secondary,
-          label: "Cold Start",
-          hidden: !activeSeries.cold_start,
+          borderColor: themeColors.accent,
+          label: "Query",
+          hidden: !activeSeries.query,
           type: "line",
           fill: "start",
-          backgroundColor: (context: ScriptableContext<"line">) => {
-            const ctx = context.chart.ctx;
-            const gradient = ctx.createLinearGradient(0, 0, 0, 300);
-            gradient.addColorStop(0, themeColors.secondary + "44");
-            gradient.addColorStop(1, themeColors.secondary + "00");
-            return gradient;
-          },
+          backgroundColor: "#00000000",
         },
         {
           data: benchmark ? benchmark.summary.connect.points : [],
@@ -128,24 +123,56 @@ export default function Analytics() {
           fill: "start",
           backgroundColor: (context: ScriptableContext<"line">) => {
             const ctx = context.chart.ctx;
-            const gradient = ctx.createLinearGradient(0, 0, 0, 200);
+            const gradient = ctx.createLinearGradient(0, 0, 0, 300);
             gradient.addColorStop(0, themeColors.primary + "44");
             gradient.addColorStop(1, themeColors.primary + "00");
             return gradient;
           },
         },
         {
-          data: benchmark ? benchmark.summary.query.points : [],
+          data: benchmark ? benchmark.summary.cold_start.points : [],
           pointRadius: 0,
           borderWidth: 2,
           tension: 0.25,
-          borderColor: themeColors.accent,
-          label: "Query",
-          hidden: !activeSeries.query,
+          borderColor: themeColors.secondary,
+          label: "Cold Start",
+          hidden: !activeSeries.cold_start,
           type: "line",
           fill: "start",
-          backgroundColor: "#00000000",
+          backgroundColor: (context: ScriptableContext<"line">) => {
+            const ctx = context.chart.ctx;
+            const gradient = ctx.createLinearGradient(0, 0, 0, 200);
+            gradient.addColorStop(0, themeColors.secondary + "44");
+            gradient.addColorStop(1, themeColors.secondary + "00");
+            return gradient;
+          },
         },
+      ];
+    }
+    return [];
+  }, [benchmark]);
+
+  const comparisonBenchmark = useMemo<Array<ChartDataset<"bar">>>(() => {
+    if (benchmark) {
+      return [
+          {
+            label: 'Cold Start',
+            data: benchmark.branches.map((branch) => branch.cold_start.p50),
+            borderColor: themeColors.secondary,
+            backgroundColor: themeColors.secondary,
+          },
+          {
+            label: 'Connect',
+            data: benchmark.branches.map((branch) => branch.connect.p50),
+            borderColor: themeColors.primary,
+            backgroundColor: themeColors.primary,
+          },
+          {
+            label: 'Query',
+            data: benchmark.branches.map((branch) => branch.query.p50),
+            borderColor: themeColors.accent,
+            backgroundColor: themeColors.accent,
+          },
       ];
     }
     return [];
@@ -320,6 +347,20 @@ export default function Analytics() {
           </div>
         </div>
       </div>
+
+      <div>
+        <h3 className="text-3xl font-bold">Latency by Database Variant</h3>
+        <p className="text-base-content/70">
+          How does query latency compare across different sizes and configurations of database?
+        </p>
+        <div className="h-64 my-12">
+          <BarChart
+              title="Comparison of Query Latency by Database Variant"
+              chartData={{labels:benchmark?.branches.map((br) => {return br.name}), datasets:comparisonBenchmark}}
+              activeSeries={activeSeries}
+            />
+            </div>
+        </div>
 
       <div>
         <h3 className="text-3xl font-bold">
