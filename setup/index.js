@@ -1,5 +1,5 @@
 const { Pool: PgPool, Client: PgClient } = require("pg");
-const { neon, Client: NeonClient } = require("@neondatabase/serverless");
+const { neon, Client: NeonClient, neonConfig } = require("@neondatabase/serverless");
 const ws = require("ws");
 const { createApiClient } = require("@neondatabase/api-client");
 const { readFileSync } = require("fs");
