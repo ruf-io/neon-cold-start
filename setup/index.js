@@ -1,6 +1,6 @@
 const { Pool: PgPool, Client: PgClient } = require("pg");
 const { neon, Client: NeonClient } = require("@neondatabase/serverless");
-import ws from 'ws';
+const  ws = require('ws');
 const { createApiClient } = require("@neondatabase/api-client");
 const { readFileSync } = require("fs");
 const { randomUUID } = require("crypto");
