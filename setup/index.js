@@ -401,7 +401,7 @@ const benchmarkProject = async ({ id: projectId }, apiClient, runId) => {
         [
           branchId,
           coldConnectMs,
-          hotConnectQueryTimes,
+          hotConnectTimes,
           hotQueryTimes,
           new Date(),
           driver,
