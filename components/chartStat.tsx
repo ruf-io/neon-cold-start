@@ -2,7 +2,6 @@ import { BranchBenchmark } from "@/hooks";
 import { ChartDataset } from "chart.js";
 import React from "react";
 import Chart, { ActiveSeries } from "@/components/chart";
-import { formatFloatToStatString } from "./stat";
 
 interface Props {
     branchBenchmark: BranchBenchmark;

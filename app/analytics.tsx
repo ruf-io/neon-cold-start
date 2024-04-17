@@ -2,7 +2,7 @@
 import { ChangeEventHandler, useCallback, useMemo, useState } from "react";
 import Chart, { themeColors, ActiveSeries } from "@/components/chart";
 import BarChart from "@/components/barChart";
-import { ChartData, ChartDataset, ScriptableContext } from "chart.js";
+import { ChartDataset, ScriptableContext } from "chart.js";
 import Error from "@/components/error";
 import useBenchmarks, { BranchBenchmark } from "@/hooks";
 import ChartStat from "@/components/chartStat";

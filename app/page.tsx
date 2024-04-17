@@ -1,5 +1,3 @@
-"use client";
-import Image from "next/image";
 import Analytics from "./analytics";
 import Intro from "@/content/intro.mdx";
 import Details from "@/content/details.mdx";
@@ -65,8 +63,9 @@ export default function Home() {
           <div className="w-48">
             <div className="divider w-12"></div>
             <div className="flex flex-col gap-4 font-medium text-base-content/80">
-              <a className="hover:text-base-content" href="#about-neon-cold-starts">About Neon Cold Starts</a>
-              <a className="hover:text-base-content" href="#cold-start-faqs" >Cold Start FAQs</a>
+            <a className="hover:text-base-content" href="#connections" >Connections</a>
+              <a className="hover:text-base-content" href="#queries" >Queries</a>
+              <a className="hover:text-base-content" href="#cold-starts">Cold Starts</a>
               <a className="hover:text-base-content" href="#benchmark-methodology" >Benchmark methodology</a>
               <a className="hover:text-base-content" href="#try-it-yourself" >Try It Yourself</a>
             </div>
@@ -76,7 +75,7 @@ export default function Home() {
           <div className="bg-primary/5 border-primary border-l-4 px-4 -mx-4 py-3 mb-12">
             <div className="flex items-center gap-1">
               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" className="stroke-primary shrink-0 w-6 h-6"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-              <span className="font-semibold text-primary">New to Neon?</span>
+              <span className="font-semibold text-primary">What is Neon?</span>
             </div>
             <p className="m-0 mt-1">Neon is&nbsp;<a href="https://neon.tech/">serverless Postgres</a>: Standard PostgreSQL in a cloud platform that separates storage and compute, unlocking features like branching, autoscaling, and&nbsp;scale to zero.</p>
           </div>

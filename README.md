@@ -94,9 +94,9 @@ After the benchmark, the results are stored in the _main_ branch in the followin
 CREATE TABLE IF NOT EXISTS benchmarks (
     id INT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     branch_id TEXT, -- Benchmark branch ID.
-    cold_start_connect_query_response_ms INT, -- Timing for cold start + connection + query/response
-    hot_connect_query_response_ms INT[],  -- Array of the timing of repeated hot connection + queries/responses
-    hot_query_response_ms INT[],  -- Array of the timing of repeated hot query/responses
+    cold_start_connect_ms INT, -- Timing for cold start + connection
+    hot_connect_ms INT[],  -- Array of the timing of repeated hot connections
+    hot_query_ms INT[],  -- Array of the timing of repeated hot query/responses
     ts TIMESTAMP,  -- when the benchmark started running
     driver TEXT, -- which driver was used, 'node-postgres (Client)' or '@neondatabase/serverless (Client)'
     pooled_connection BOOLEAN, -- whether or not the connection was via the pooled host or standard

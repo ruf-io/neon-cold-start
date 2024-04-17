@@ -1,6 +1,56 @@
-# About Neon Cold Starts
+# Connections
 
-A cold start in Neon begins when a database with a suspended compute endpoint receives a connection.
+Before querying a Postgres database, a connection must be established.
+
+```javascript
+import pg from 'pg'
+const { Client } = pg
+const client = new Client()
+await client.connect() // [!code focus]
+ 
+const res = await client.query('SELECT * from table where id=1')
+console.log(res.rows[0])
+await client.end()
+```
+
+When `client.connect()` is called, several steps and network roundtrips must happen before the connection is ready:
+
+1. **DNS lookup**
+2. **Establish TCP connection**
+3. **TLS Negotiation**
+3. **Connection request**
+4. **Auth challenge**
+5. **Client response**
+6. **Connection ready**
+
+Each of these steps involves at least one trip between client and host. **Client\<-\>Database proximity** is the biggest factor in the time required to establish a connection.
+
+# Queries
+
+Once a connection between client and host is established, queries are a straightforward request/response process:
+
+1. Send query
+2. Receive response
+
+```javascript
+import pg from 'pg'
+const { Client } = pg
+const client = new Client()
+await client.connect()
+ 
+const res = await client.query('SELECT * from table where id=1')  // [!code focus]
+console.log(res.rows[0])
+await client.end()
+```
+
+With this in mind, nearly all of the latency depends on two factors:
+
+1. Client\<-\>Database proximity - The network latency 
+1. Query Complexity - A complex SQL query requires more work from the database before responding.
+
+# Cold Starts
+
+A cold start in Neon begins when a database project with a suspended compute endpoint receives a connection.
 Neon starts the database compute, processes the query, and serves the response.
 The compute stays active as long as there are active connections. 
 

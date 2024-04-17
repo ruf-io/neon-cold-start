@@ -1,9 +1,17 @@
 const { Pool: PgPool, Client: PgClient } = require("pg");
-const { neon } = require("@neondatabase/serverless");
+const { neon, Client: NeonClient } = require("@neondatabase/serverless");
+import ws from 'ws';
 const { createApiClient } = require("@neondatabase/api-client");
 const { readFileSync } = require("fs");
 const { randomUUID } = require("crypto");
 const { default: PQueue } = require("p-queue");
+
+const DRIVERS = {
+  'pg': PgClient,
+  'neon': NeonClient
+}
+
+neonConfig.webSocketConstructor = ws;
 
 require("dotenv").config();
 const configFile = JSON.parse(
@@ -335,14 +343,8 @@ const benchmarkProject = async ({ id: projectId }, apiClient, runId) => {
         `Benchmarking branch ${branchName} with endpoint ${benchmarkEndpoint.host}, driver ${driver}, pooled=${pooled_connection}.`
       );
 
-      // Run benchmarks
-      let coldQueryMs = 0; 
-      const hotQueryTimes = [];
-      const hotConnectQueryTimes = []
-
-      // Cold Starts
-      if (driver === "pg") {
-        const benchClient = new PgClient({
+      //Instantiate the client driver (either pg or neon)
+      const benchClient = new DRIVERS[driver]({
           host: pooled_connection
             ? benchmarkEndpoint.host.replace(".", "-pooler.")
             : benchmarkEndpoint.host,
@@ -351,12 +353,15 @@ const benchmarkProject = async ({ id: projectId }, apiClient, runId) => {
           database: DATABASE_NAME,
           ssl: true,
         });
+        
+        // Cold Start + Connect (where the database starts out suspended)
         const coldTimeStart = Date.now(); // <-- Start timer
         await benchClient.connect(); // <-- Connect
-        await benchClient.query(benchmarkQuery); // <-- Query
-        coldQueryMs = Date.now() - coldTimeStart; // <-- Stop timer
+        const coldConnectMs = Date.now() - coldTimeStart; // <-- Stop timer
+        await benchClient.query(benchmarkQuery);
 
         // Hot Queries (where the connection is already active)
+        const hotQueryTimes = [];
         for (let i = 0; i < 10; i++) {
           const start = Date.now(); // <-- Start timer
           await benchClient.query(benchmarkQuery); // <-- Query
@@ -364,9 +369,10 @@ const benchmarkProject = async ({ id: projectId }, apiClient, runId) => {
         }
         await benchClient.end();
 
-        // Hot Queries (where a connection must first be established)
+        // Hot Connects (where the database is active, but a connection must first be established)
+        const hotConnectTimes = [];
         for (let i = 0; i < 10; i++) {
-          const benchClient = new PgClient({
+          const benchClient = new DRIVERS[driver]({
             host: pooled_connection
               ? benchmarkEndpoint.host.replace(".", "-pooler.")
               : benchmarkEndpoint.host,
@@ -377,58 +383,25 @@ const benchmarkProject = async ({ id: projectId }, apiClient, runId) => {
           });
           const start = Date.now(); // <-- Start timer
           await benchClient.connect(); // <-- Connect
+          hotConnectTimes.push(Date.now() - start); // <-- Stop timer
           await benchClient.query(benchmarkQuery); // <-- Query
-          hotConnectQueryTimes.push(Date.now() - start); // <-- Stop timer
           await benchClient.end();
-        }
-      } else {
-        //Neon Serverless Driver
-        const coldTimeStart = Date.now(); // <-- Start timer
-        const sql = neon(
-          `postgresql://${ROLE_NAME}:${benchmarkRolePassword}@${
-            pooled_connection
-              ? benchmarkEndpoint.host.replace(".", "-pooler.")
-              : benchmarkEndpoint.host
-          }/${DATABASE_NAME}?sslmode=require`
-        );
-        await sql(benchmarkQuery); // <-- Query
-        coldQueryMs = Date.now() - coldTimeStart; // <-- Stop timer
-
-        // Hot Queries (where the connection is already active)
-        for (let i = 0; i < 10; i++) {
-          const start = Date.now(); // <-- Start timer
-          await sql(benchmarkQuery); // <-- Query
-          hotQueryTimes.push(Date.now() - start); // <-- Stop timer
-        }
-
-        // Hot Queries (there is no difference between hot query types in serverless, just do it again)
-        for (let i = 0; i < 10; i++) {
-          const start = Date.now(); // <-- Start timer
-          const sql = neon(
-            `postgresql://${ROLE_NAME}:${benchmarkRolePassword}@${
-              pooled_connection
-                ? benchmarkEndpoint.host.replace(".", "-pooler.")
-                : benchmarkEndpoint.host
-            }/${DATABASE_NAME}?sslmode=require`
-          );
-          await sql(benchmarkQuery); // <-- Query
-          hotConnectQueryTimes.push(Date.now() - start); // <-- Stop timer
         }
       }
 
       log(
         `Benchmark complete. Details ${branchName} / ${
           benchmarkEndpoint.id
-        }. Cold ${coldQueryMs} / Hot Connect ${hotConnectQueryTimes.join(
+        }. Cold Connect: ${coldConnectMs} / Hot Connect ${hotConnectTimes.join(
           ","
-        )} / Hot ${hotQueryTimes.join(",")}`
+        )} / Hot Queries ${hotQueryTimes.join(",")}`
       );
 
       await mainClient.query(
-        "INSERT INTO benchmarks (branch_id, cold_start_connect_query_response_ms, hot_connect_query_response_ms, hot_query_response_ms, ts, driver, pooled_connection, benchmark_run_id) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)",
+        "INSERT INTO benchmarks (branch_id, cold_start_connect_ms, hot_connect_ms, hot_query_ms, ts, driver, pooled_connection, benchmark_run_id) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)",
         [
           branchId,
-          coldQueryMs,
+          coldConnectMs,
           hotConnectQueryTimes,
           hotQueryTimes,
           new Date(),

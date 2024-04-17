@@ -16,15 +16,15 @@ function branchRowsSql(minDate: Date, stride: string) {
         SELECT
             b.branch_id,
             date_bin('${stride}'::interval, br.ts, '2024-03-01'::timestamp) as ts,
-            (AVG(cold_start_connect_query_response_ms) - AVG(unnest_hot_connect_query_response_ms))::int AS cold_start,
-            (AVG(unnest_hot_connect_query_response_ms) - AVG(unnest_hot_query_response_ms))::int AS connect,
-            AVG(unnest_hot_query_response_ms)::int AS query
+            (AVG(cold_start_connect_ms) - AVG(unnest_hot_connect_ms))::int AS cold_start,
+            (AVG(unnest_hot_connect_ms) - AVG(unnest_hot_query_ms))::int AS connect,
+            AVG(unnest_hot_query_ms)::int AS query
         FROM
             benchmark_runs br
         JOIN
             benchmarks b ON br.id = b.benchmark_run_id,
-            unnest(b.hot_connect_query_response_ms) AS unnest_hot_connect_query_response_ms,
-            unnest(b.hot_query_response_ms) AS unnest_hot_query_response_ms
+            unnest(b.hot_connect_ms) AS unnest_hot_connect_ms,
+            unnest(b.hot_query_ms) AS unnest_hot_query_ms
         WHERE
             br.ts > '${minDate.toISOString()}'::timestamp
         GROUP BY
@@ -52,7 +52,7 @@ export async function GET() {
   let stride = "30 minutes";
   minDate.setDate(minDate.getDate() - 7);
 
-  const branches = await sql`SELECT id, name, description, driver, pooled_connection, minCU FROM branches;`;
+  const branches = await sql(`SELECT * FROM branches;`);
   const rows = await sql(branchRowsSql(minDate, stride));
   const timings = ["cold_start", "connect", "query"];
   
@@ -60,7 +60,7 @@ export async function GET() {
   const dataSets = Object.fromEntries(
     branches.map((b) => [
       b.id,
-      {id: b.id, name: b.name, description: b.description, ...Object.fromEntries(
+      {...b, ...Object.fromEntries(
         timings.map((t) => [t, { points: [], p50: 0, p99: 0, stdDev: 0 }])
       )},
     ])
@@ -86,7 +86,7 @@ export async function GET() {
     });
 
     //Connect metrics for serverless driver are not applicable
-    if(dataSets[key].name === "Select via Serverless Driver") {
+    if(dataSets[key].driver === "neon") {
       dataSets[key].connect = { points: [], p50: 0, p99: 0, stdDev: 0 };
     }
   });
@@ -94,14 +94,6 @@ export async function GET() {
   return NextResponse.json(
     {
       data: Object.values(dataSets),
-    },
-    {
-      status: 200,
-      headers: {
-        "Cache-Control": "public, s-maxage=1",
-        "CDN-Cache-Control": "public, s-maxage=60",
-        "Vercel-CDN-Cache-Control": "public, s-maxage=3600",
-      },
     }
   );
 }

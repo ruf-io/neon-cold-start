@@ -1,11 +1,20 @@
 import type { MDXComponents } from 'mdx/types'
-import slugify from '@sindresorhus/slugify';
+import slugify from '@sindresorhus/slugify'
+import {codeToHtml} from 'shiki'
+import { transformerNotationHighlight, transformerNotationFocus } from '@shikijs/transformers'
 
-
-// This file allows you to provide custom React components
-// to be used in MDX files. You can import and use any
-// React component you want, including inline styles,
-// components from other libraries, and more.
+async function Pre({ children }: any) {
+    const html = await codeToHtml(children.props.children, {
+        lang: children.props.className.replace('language-', ''),
+        theme: 'andromeeda',
+        transformers: [
+          transformerNotationHighlight(),
+          transformerNotationFocus(),
+        ],
+      })
+    
+      return <p dangerouslySetInnerHTML={{ __html: html }} />
+}
 
 export function useMDXComponents(components: MDXComponents): MDXComponents {
     return {
@@ -13,6 +22,7 @@ export function useMDXComponents(components: MDXComponents): MDXComponents {
         h1: ({ children }) => <h1 id={slugify(children ? children.toString() : '')}>{children}</h1>,
         h2: ({ children }) => <h2 id={slugify(children ? children.toString() : '')}>{children}</h2>,
         h3: ({ children }) => <h3 id={slugify(children ? children.toString() : '')}>{children}</h3>,
+        pre: Pre,
         ...components,
     }
 }

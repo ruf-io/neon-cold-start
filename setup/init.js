@@ -83,9 +83,9 @@ const initProject = async (apiClient, branches) => {
     await mainPool.query(`CREATE TABLE IF NOT EXISTS benchmarks (
         id INT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
         branch_id TEXT,
-        cold_start_connect_query_response_ms INT,
-        hot_connect_query_response_ms INT[],
-        hot_query_response_ms INT[],
+        cold_start_connect_ms INT,
+        hot_connect_ms INT[],
+        hot_query_ms INT[],
         ts TIMESTAMP,
         driver TEXT,
         pooled_connection BOOLEAN,
