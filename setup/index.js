@@ -1,15 +1,15 @@
 const { Pool: PgPool, Client: PgClient } = require("pg");
 const { neon, Client: NeonClient } = require("@neondatabase/serverless");
-const  ws = require('ws');
+const ws = require("ws");
 const { createApiClient } = require("@neondatabase/api-client");
 const { readFileSync } = require("fs");
 const { randomUUID } = require("crypto");
 const { default: PQueue } = require("p-queue");
 
 const DRIVERS = {
-  'pg': PgClient,
-  'neon': NeonClient
-}
+  pg: PgClient,
+  neon: NeonClient,
+};
 
 neonConfig.webSocketConstructor = ws;
 
@@ -169,7 +169,7 @@ const getConfig = async (apiClient, projectId) => {
       };
     }
   }
-  
+
   return branchesConfig;
 };
 
@@ -345,6 +345,34 @@ const benchmarkProject = async ({ id: projectId }, apiClient, runId) => {
 
       //Instantiate the client driver (either pg or neon)
       const benchClient = new DRIVERS[driver]({
+        host: pooled_connection
+          ? benchmarkEndpoint.host.replace(".", "-pooler.")
+          : benchmarkEndpoint.host,
+        password: benchmarkRolePassword,
+        user: ROLE_NAME,
+        database: DATABASE_NAME,
+        ssl: true,
+      });
+
+      // Cold Start + Connect (where the database starts out suspended)
+      const coldTimeStart = Date.now(); // <-- Start timer
+      await benchClient.connect(); // <-- Connect
+      const coldConnectMs = Date.now() - coldTimeStart; // <-- Stop timer
+      await benchClient.query(benchmarkQuery);
+
+      // Hot Queries (where the connection is already active)
+      const hotQueryTimes = [];
+      for (let i = 0; i < 10; i++) {
+        const start = Date.now(); // <-- Start timer
+        await benchClient.query(benchmarkQuery); // <-- Query
+        hotQueryTimes.push(Date.now() - start); // <-- Stop timer
+      }
+      await benchClient.end();
+
+      // Hot Connects (where the database is active, but a connection must first be established)
+      const hotConnectTimes = [];
+      for (let i = 0; i < 10; i++) {
+        const benchClient = new DRIVERS[driver]({
           host: pooled_connection
             ? benchmarkEndpoint.host.replace(".", "-pooler.")
             : benchmarkEndpoint.host,
@@ -353,43 +381,14 @@ const benchmarkProject = async ({ id: projectId }, apiClient, runId) => {
           database: DATABASE_NAME,
           ssl: true,
         });
-        
-        // Cold Start + Connect (where the database starts out suspended)
-        const coldTimeStart = Date.now(); // <-- Start timer
+        const start = Date.now(); // <-- Start timer
         await benchClient.connect(); // <-- Connect
-        const coldConnectMs = Date.now() - coldTimeStart; // <-- Stop timer
-        await benchClient.query(benchmarkQuery);
-
-        // Hot Queries (where the connection is already active)
-        const hotQueryTimes = [];
-        for (let i = 0; i < 10; i++) {
-          const start = Date.now(); // <-- Start timer
-          await benchClient.query(benchmarkQuery); // <-- Query
-          hotQueryTimes.push(Date.now() - start); // <-- Stop timer
-        }
+        hotConnectTimes.push(Date.now() - start); // <-- Stop timer
+        await benchClient.query(benchmarkQuery); // <-- Query
         await benchClient.end();
-
-        // Hot Connects (where the database is active, but a connection must first be established)
-        const hotConnectTimes = [];
-        for (let i = 0; i < 10; i++) {
-          const benchClient = new DRIVERS[driver]({
-            host: pooled_connection
-              ? benchmarkEndpoint.host.replace(".", "-pooler.")
-              : benchmarkEndpoint.host,
-            password: benchmarkRolePassword,
-            user: ROLE_NAME,
-            database: DATABASE_NAME,
-            ssl: true,
-          });
-          const start = Date.now(); // <-- Start timer
-          await benchClient.connect(); // <-- Connect
-          hotConnectTimes.push(Date.now() - start); // <-- Stop timer
-          await benchClient.query(benchmarkQuery); // <-- Query
-          await benchClient.end();
-        }
       }
 
-      log(
+      console.log(
         `Benchmark complete. Details ${branchName} / ${
           benchmarkEndpoint.id
         }. Cold Connect: ${coldConnectMs} / Hot Connect ${hotConnectTimes.join(
