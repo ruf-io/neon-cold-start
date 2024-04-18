@@ -17,7 +17,7 @@ function branchRowsSql(minDate: Date, stride: string) {
             b.branch_id,
             date_bin('${stride}'::interval, br.ts, '2024-03-01'::timestamp) as ts,
             (AVG(cold_start_connect_ms) - AVG(unnest_hot_connect_ms))::int AS cold_start,
-            (AVG(unnest_hot_connect_ms) - AVG(unnest_hot_query_ms))::int AS connect,
+            AVG(unnest_hot_connect_ms)::int AS connect,
             AVG(unnest_hot_query_ms)::int AS query
         FROM
             benchmark_runs br
