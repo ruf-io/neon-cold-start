@@ -357,8 +357,10 @@ const benchmarkProject = async ({ id: projectId }, apiClient, runId) => {
       // Cold Start + Connect (where the database starts out suspended)
       const coldTimeStart = Date.now(); // <-- Start timer
       await benchClient.connect(); // <-- Connect
-      const coldConnectMs = Date.now() - coldTimeStart; // <-- Stop timer
+      let coldConnectMs = Date.now() - coldTimeStart; // <-- Stop timer
       await benchClient.query(benchmarkQuery);
+      // Need to connect and query to get an accurate reading from the Neon driver
+      if(driver === 'neon') coldConnectMs = Date.now() - coldTimeStart;
 
       // Hot Queries (where the connection is already active)
       const hotQueryTimes = [];
@@ -368,6 +370,9 @@ const benchmarkProject = async ({ id: projectId }, apiClient, runId) => {
         hotQueryTimes.push(Date.now() - start); // <-- Stop timer
       }
       await benchClient.end();
+
+      //Subtract the average query time from the Neon driver since we had to include the query
+      if(driver === 'neon') coldConnectMs -= hotQueryTimes.reduce((a, b) => a + b, 0) / hotQueryTimes.length;
 
       // Hot Connects (where the database is active, but a connection must first be established)
       const hotConnectTimes = [];
