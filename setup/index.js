@@ -13,7 +13,7 @@ const DRIVERS = {
 
 neonConfig.webSocketConstructor = ws;
 
-require("dotenv").config({ path: __dirname + '/.env' });
+require("dotenv").config();
 const configFile = JSON.parse(
   readFileSync(__dirname + "/config.json", "utf-8")
 );
