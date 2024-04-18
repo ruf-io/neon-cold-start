@@ -374,7 +374,7 @@ const benchmarkProject = async ({ id: projectId }, apiClient, runId) => {
       await benchClient.end();
 
       //Subtract the average query time from the Neon driver since we had to include the query
-      if(driver === 'neon') parseInt(coldConnectMs -= hotQueryTimes.reduce((a, b) => a + b, 0) / hotQueryTimes.length, 10);
+      if(driver === 'neon') coldConnectMs -= hotQueryTimes.reduce((a, b) => a + b, 0) / hotQueryTimes.length;
 
       // Hot Connects (where the database is active, but a connection must first be established)
       const hotConnectTimes = [];
@@ -408,7 +408,7 @@ const benchmarkProject = async ({ id: projectId }, apiClient, runId) => {
         "INSERT INTO benchmarks (branch_id, cold_start_connect_ms, hot_connect_ms, hot_query_ms, ts, driver, pooled_connection, benchmark_run_id) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)",
         [
           branchId,
-          coldConnectMs,
+          parseInt(coldConnectMs, 10),
           hotConnectTimes,
           hotQueryTimes,
           new Date(),
