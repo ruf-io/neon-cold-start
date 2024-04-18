@@ -372,7 +372,7 @@ const benchmarkProject = async ({ id: projectId }, apiClient, runId) => {
       await benchClient.end();
 
       //Subtract the average query time from the Neon driver since we had to include the query
-      if(driver === 'neon') coldConnectMs -= hotQueryTimes.reduce((a, b) => a + b, 0) / hotQueryTimes.length;
+      if(driver === 'neon') parseInt(coldConnectMs -= hotQueryTimes.reduce((a, b) => a + b, 0) / hotQueryTimes.length, 10);
 
       // Hot Connects (where the database is active, but a connection must first be established)
       const hotConnectTimes = [];
