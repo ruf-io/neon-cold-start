@@ -361,6 +361,7 @@ const benchmarkProject = async ({ id: projectId }, apiClient, runId) => {
       await benchClient.query(benchmarkQuery);
       // Need to connect and query to get an accurate reading from the Neon driver
       if(driver === 'neon') coldConnectMs = Date.now() - coldTimeStart;
+      await sleep(500);
 
       // Hot Queries (where the connection is already active)
       const hotQueryTimes = [];
@@ -368,6 +369,7 @@ const benchmarkProject = async ({ id: projectId }, apiClient, runId) => {
         const start = Date.now(); // <-- Start timer
         await benchClient.query(benchmarkQuery); // <-- Query
         hotQueryTimes.push(Date.now() - start); // <-- Stop timer
+        await sleep(500);
       }
       await benchClient.end();
 
@@ -391,6 +393,7 @@ const benchmarkProject = async ({ id: projectId }, apiClient, runId) => {
         hotConnectTimes.push(Date.now() - start); // <-- Stop timer
         await benchClient.query(benchmarkQuery); // <-- Query
         await benchClient.end();
+        await sleep(500);
       }
 
       console.log(
