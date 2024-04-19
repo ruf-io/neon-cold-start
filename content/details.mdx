@@ -85,17 +85,17 @@ for (let i = 0; i < 10; i++) {
 
 <dl>
     <dt>Database Compute Size:</dt>
-    <dd>0.25 CU (0.25 vCPU, 1GB RAM)</dd>
+    <dd>Defaults to 0.25 CU (0.25 vCPU, 1GB RAM), with one test using 2 CU</dd>
     <dt>Database Region:</dt>
     <dd>AWS US-East-2 (Ohio)</dd>
-    <dt>Lambda Region:</dt>
+    <dt>Benchmark Client Region:</dt>
     <dd>AWS US-East-2 (Ohio)</dd>
     <dt>Postgres Connection Type:</dt>
-    <dd><a href="https://neon.tech/docs/connect/connection-pooling">Pooled</a> <em>(Testing shows no significant difference between pooled vs unpooled)</em></dd>
+    <dd>Defaults to direct, with one test using <a href="https://neon.tech/docs/connect/connection-pooling">Pooled</a></dd>
     <dt>Postgres Version:</dt>
     <dd>PostgreSQL 16</dd>
     <dt>Postgres Driver:</dt>
-    <dd><a href="https://node-postgres.com/">node-postgres</a></dd>
+    <dd>Defaults to <a href="https://node-postgres.com/">node-postgres</a>, with one test using [Neon Serverless Driver](https://github.com/neondatabase/serverless)</dd>
 
 </dl>
 
