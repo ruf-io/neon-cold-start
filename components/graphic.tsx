@@ -47,7 +47,7 @@ const Graphic = (props: Props) => {
             () => {
               setStep(step + 1);
             },
-            idleCounter > 0 ? 10 : slowed ? 800 : 300
+            idleCounter > 0 ? 10 : slowed ? 800 : 350
           );
           break;
         case 4:
@@ -55,7 +55,7 @@ const Graphic = (props: Props) => {
             () => {
               setStep(step + 1);
             },
-            idleCounter > 0 ? 10 : slowed ? 800 : 300
+            idleCounter > 0 ? 10 : slowed ? 800 : 33
           );
           break;
         case 5:
@@ -64,7 +64,7 @@ const Graphic = (props: Props) => {
             () => {
               setStep(0);
             },
-            idleCounter > 0 ? 10 : 100
+            idleCounter > 0 ? 10 : 3
           );
           break;
       }

@@ -21,7 +21,7 @@ When a connection is initiated _(via `client.connect()` in the Node.JS example a
 3. **TLS Negotiation**
 4. **Postgres Auth and Connection**
 
-Each of these steps involves at least one trip between client and host. That makes **Client\<-\>Database proximity** is the biggest factor in the time required to establish a connection.
+Each of these steps involves at least one trip between client and host. That makes **Client\<\>Database proximity** the primary factor in time required to establish a connection.
 
 This benchmark runs the client in the same AWS region as the Neon Project in order to reduce connection latency.
 
