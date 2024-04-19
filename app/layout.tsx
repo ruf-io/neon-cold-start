@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-    title: "Cold Start Benchmarks",
-    description: "An open-source tool for understanding and benchmarking the cold starts of Neon projects.",
+    title: "Neon Query Benchmarks",
+    description: "An open-source tool for understanding and benchmarking the connect, query and cold start timing of Neon projects.",
 };
 
 export default function RootLayout({

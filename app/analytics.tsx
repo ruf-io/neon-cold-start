@@ -155,24 +155,24 @@ export default function Analytics() {
   const comparisonBenchmark = useMemo<Array<ChartDataset<"bar">>>(() => {
     if (benchmark) {
       return [
-          {
-            label: 'Cold Start',
-            data: benchmark.branches.map((branch) => branch.cold_start.p50),
-            borderColor: themeColors.secondary,
-            backgroundColor: themeColors.secondary,
-          },
-          {
-            label: 'Connect',
-            data: benchmark.branches.map((branch) => branch.connect.p50),
-            borderColor: themeColors.primary,
-            backgroundColor: themeColors.primary,
-          },
-          {
-            label: 'Query',
-            data: benchmark.branches.map((branch) => branch.query.p50),
-            borderColor: themeColors.accent,
-            backgroundColor: themeColors.accent,
-          },
+        {
+          label: "Cold Start",
+          data: benchmark.branches.map((branch) => branch.cold_start.p50),
+          borderColor: themeColors.secondary,
+          backgroundColor: themeColors.secondary,
+        },
+        {
+          label: "Connect",
+          data: benchmark.branches.map((branch) => branch.connect.p50),
+          borderColor: themeColors.primary,
+          backgroundColor: themeColors.primary,
+        },
+        {
+          label: "Query",
+          data: benchmark.branches.map((branch) => branch.query.p50),
+          borderColor: themeColors.accent,
+          backgroundColor: themeColors.accent,
+        },
       ];
     }
     return [];
@@ -219,10 +219,28 @@ export default function Analytics() {
             <tbody>
               <tr>
                 <td></td>
-                <td className="text-base-content/80"><span className="tooltip" data-tip="50th percentile (median) latency value.">P50</span></td>
-                <td className="text-base-content/60"><span className="tooltip" data-tip="99th percentile latency value.">P99</span></td>
+                <td className="text-base-content/80">
+                  <span
+                    className="tooltip"
+                    data-tip="50th percentile (median) latency value."
+                  >
+                    P50
+                  </span>
+                </td>
+                <td className="text-base-content/60">
+                  <span
+                    className="tooltip"
+                    data-tip="99th percentile latency value."
+                  >
+                    P99
+                  </span>
+                </td>
               </tr>
-              <tr className={`transition-opacity ${!activeSeries.query ? 'opacity-50' : ''}`}>
+              <tr
+                className={`transition-opacity ${
+                  !activeSeries.query ? "opacity-50" : ""
+                }`}
+              >
                 <td>
                   <label className="cursor-pointer flex gap-2 items-center whitespace-nowrap">
                     <input
@@ -238,7 +256,11 @@ export default function Analytics() {
                 <td className="font-semibold">{query.p50}ms</td>
                 <td className="text-base-content/60">{query.p99}ms</td>
               </tr>
-              <tr className={`transition-opacity ${!activeSeries.connect ? 'opacity-50' : ''}`}>
+              <tr
+                className={`transition-opacity ${
+                  !activeSeries.connect ? "opacity-50" : ""
+                }`}
+              >
                 <td>
                   <label className="cursor-pointer flex gap-2 items-center whitespace-nowrap">
                     <input
@@ -254,7 +276,11 @@ export default function Analytics() {
                 <td className="font-semibold">{connect.p50}ms</td>
                 <td className="text-base-content/60">{connect.p99}ms</td>
               </tr>
-              <tr className={`transition-opacity ${!activeSeries.cold_start ? 'opacity-50' : ''}`}>
+              <tr
+                className={`transition-opacity ${
+                  !activeSeries.cold_start ? "opacity-50" : ""
+                }`}
+              >
                 <td>
                   <label className="cursor-pointer flex gap-2 items-center whitespace-nowrap">
                     <input
@@ -275,9 +301,17 @@ export default function Analytics() {
                   <span className="w-2 h-2 inline-block rounded"></span>
                   Total
                 </th>
-                <th>{(activeSeries.cold_start ? cold_start.p50 : 0) + (activeSeries.connect ? connect.p50 : 0) +  (activeSeries.query ? query.p50 : 0)}ms</th>
+                <th>
+                  {(activeSeries.cold_start ? cold_start.p50 : 0) +
+                    (activeSeries.connect ? connect.p50 : 0) +
+                    (activeSeries.query ? query.p50 : 0)}
+                  ms
+                </th>
                 <th className="text-base-content/60">
-                {(activeSeries.cold_start ? cold_start.p99 : 0) + (activeSeries.connect ? connect.p99 : 0) +  (activeSeries.query ? query.p99 : 0)}ms
+                  {(activeSeries.cold_start ? cold_start.p99 : 0) +
+                    (activeSeries.connect ? connect.p99 : 0) +
+                    (activeSeries.query ? query.p99 : 0)}
+                  ms
                 </th>
               </tr>
             </tbody>
@@ -296,24 +330,7 @@ export default function Analytics() {
       </div>
 
       <div>
-        
-        <div className="grid grid-cols-2 xl:grid-cols-3">
-          <div className="card">
-            <div className="card-body">
-              <h3 className="card-title">Cold Starts</h3>
-              <p className="text-base-content/70 text-base">
-                Neon can autosuspend when idle and cold start when needed. In this benchmark, a cold start adds{" "}
-                <code className="text-neutral bg-neutral-content p-1 rounded">
-                  ~{cold_start.p50}ms
-                </code>{" "}
-                latency, resulting in the entire query taking{" "}
-                <code className="text-neutral bg-neutral-content p-1 rounded">
-                  ~{cold_start.p50 + connect.p50 + query.p50}ms
-                </code>
-                .
-              </p>
-            </div>
-          </div>
+        <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3">
           <div className="card">
             <div className="card-body">
               <h3 className="card-title">Connections</h3>
@@ -323,12 +340,15 @@ export default function Analytics() {
                 <code className="text-neutral bg-neutral-content p-1 rounded">
                   ~{connect.p50}ms
                 </code>{" "}
-                in this benchmark. So connect + query on a warm instance
-                takes{" "}
+                in this benchmark. So connect + query on a warm instance takes{" "}
                 <code className="text-neutral bg-neutral-content p-1 rounded">
                   ~{connect.p50 + query.p50}ms
                 </code>
                 .
+                <br />
+                <a href="#connections" className="link link-info">
+                  ↓ Connection info
+                </a>
               </p>
             </div>
           </div>
@@ -342,6 +362,31 @@ export default function Analytics() {
                   ~{query.p50}ms
                 </code>{" "}
                 in this benchmark.
+                <br />
+                <a href="#queries" className="link link-info">
+                  ↓ Query info
+                </a>
+              </p>
+            </div>
+          </div>
+          <div className="card">
+            <div className="card-body">
+              <h3 className="card-title">Cold Starts</h3>
+              <p className="text-base-content/70 text-base">
+                Neon can autosuspend when idle and cold start when needed. In
+                this benchmark, a cold start adds{" "}
+                <code className="text-neutral bg-neutral-content p-1 rounded">
+                  ~{cold_start.p50}ms
+                </code>{" "}
+                latency, resulting in the entire query taking{" "}
+                <code className="text-neutral bg-neutral-content p-1 rounded">
+                  ~{cold_start.p50 + connect.p50 + query.p50}ms
+                </code>
+                .
+                <br />
+                <a href="#cold-starts" className="link link-info">
+                  ↓ Cold Start info
+                </a>
               </p>
             </div>
           </div>
@@ -351,16 +396,22 @@ export default function Analytics() {
       <div>
         <h3 className="text-3xl font-bold">Latency by Database Variant</h3>
         <p className="text-base-content/70">
-          How does query latency compare across different sizes and configurations of database?
+          How does query latency compare across different sizes and
+          configurations of database?
         </p>
         <div className="h-64 my-12">
           <BarChart
-              title="Comparison of Query Latency by Database Variant"
-              chartData={{labels:benchmark?.branches.map((br) => {return br.name}), datasets:comparisonBenchmark}}
-              activeSeries={activeSeries}
-            />
-            </div>
+            title="Comparison of Query Latency by Database Variant"
+            chartData={{
+              labels: benchmark?.branches.map((br) => {
+                return br.name;
+              }),
+              datasets: comparisonBenchmark,
+            }}
+            activeSeries={activeSeries}
+          />
         </div>
+      </div>
 
       <div>
         <h3 className="text-3xl font-bold">

@@ -343,8 +343,7 @@ const benchmarkProject = async ({ id: projectId }, apiClient, runId) => {
         `Benchmarking branch ${branchName} with endpoint ${benchmarkEndpoint.host}, driver ${driver}, pooled=${pooled_connection}.`
       );
 
-      //Instantiate the client driver (either pg or neon)
-      const benchClient = new DRIVERS[driver]({
+      const connection_details = {
         host: pooled_connection
           ? benchmarkEndpoint.host.replace(".", "-pooler.")
           : benchmarkEndpoint.host,
@@ -352,7 +351,10 @@ const benchmarkProject = async ({ id: projectId }, apiClient, runId) => {
         user: ROLE_NAME,
         database: DATABASE_NAME,
         ssl: true,
-      });
+      };
+
+      //Instantiate the client driver (either pg or neon)
+      const benchClient = new DRIVERS[driver](connection_details);
 
       // Cold Start + Connect (where the database starts out suspended)
       const coldTimeStart = Date.now(); // <-- Start timer
@@ -379,15 +381,7 @@ const benchmarkProject = async ({ id: projectId }, apiClient, runId) => {
       // Hot Connects (where the database is active, but a connection must first be established)
       const hotConnectTimes = [];
       for (let i = 0; i < 10; i++) {
-        const benchClient = new DRIVERS[driver]({
-          host: pooled_connection
-            ? benchmarkEndpoint.host.replace(".", "-pooler.")
-            : benchmarkEndpoint.host,
-          password: benchmarkRolePassword,
-          user: ROLE_NAME,
-          database: DATABASE_NAME,
-          ssl: true,
-        });
+        const benchClient = new DRIVERS[driver](connection_details);
         const start = Date.now(); // <-- Start timer
         await benchClient.connect(); // <-- Connect
         hotConnectTimes.push(Date.now() - start); // <-- Stop timer

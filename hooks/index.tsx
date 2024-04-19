@@ -13,8 +13,10 @@ interface BenchmarkData {
 }
 
 export interface BranchBenchmark {
+  id: string;
   name: string;
   description: string;
+  driver: "neon" | "pg";
   cold_start: BenchmarkData;
   connect: BenchmarkData;
   query: BenchmarkData;
