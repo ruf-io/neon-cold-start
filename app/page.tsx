@@ -21,7 +21,7 @@ export default function Home() {
           </div>
         </div>
         <a
-          href="https://github.com/ruf-io/neon-cold-start"
+          href="https://github.com/joacoc/neon-query-benchmarks"
           target="_blank"
           className="text-base-content hover:text-primary order-first lg:order-none transition-colors"
         >

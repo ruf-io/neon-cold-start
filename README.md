@@ -1,4 +1,4 @@
-[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fruf-io%2Fneon-cold-start&env=CONNECTION_STRING&envDescription=Connection%20string%20returned%20by%20the%20setup%20step)
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fjoacoc%2Fneon-query-benchmarks&env=CONNECTION_STRING&envDescription=Connection%20string%20returned%20by%20the%20setup%20step)
 
 This is a [Neon](http://neon.tech) tool to benchmark Neon query timings
 
