@@ -1,6 +1,6 @@
 [![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fruf-io%2Fneon-cold-start&env=CONNECTION_STRING&envDescription=Connection%20string%20returned%20by%20the%20setup%20step)
 
-This is a [Neon](http://neon.tech) tool to benchmark cold starts.
+This is a [Neon](http://neon.tech) tool to benchmark Neon query timings
 
 ## Getting Started
 
@@ -9,7 +9,7 @@ This is a [Neon](http://neon.tech) tool to benchmark cold starts.
     npm install
     ```
 2. Create an `.env` file using `.env.example` as template.
-3. Setup the project:
+3. Setup the Neon project:
     ```bash
     npm run setup
     ```
@@ -60,11 +60,7 @@ aws scheduler create-schedule \
 ```
 </details>
 
-This will generate enough datapoints throughout the day to calculate the average time for your own cold starts.
-
-## The problem
-
-Neon suspends the database compute to save resources after five minutes of inactivity. The next time the database needs to process a query, the compute will need to resume. This is known as the cold-start problem. Understanding how much time takes the cold-start is the idea for this project.
+This will generate enough datapoints throughout the day to calculate the average time for your own queries.
 
 ## Setup
 
@@ -110,7 +106,7 @@ CREATE TABLE IF NOT EXISTS benchmarks (
 
 ## Application
 
-The web app will query the benchmarks stored in the _main_ branch, calculate basic metrics (average, maximum, minimum), and display them on a chart to give an overview of the cold start durations.
+The web app will query the benchmarks stored in the _main_ branch, calculate basic metrics (p50, p99, stddev), and display them on a chart to give an overview of the query durations.
 
 ## Learn More
 
